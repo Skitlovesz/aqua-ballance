@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   progressFill: {
-    width: "40%", // 1.3 / 2.5 = ~50%
+    width: "40%", 
     height: "100%",
     backgroundColor: "#2196F3",
     borderRadius: 5,
