@@ -12,12 +12,6 @@ type HistoryItem = {
 }
 
 export default function HomeScreen() {
-  // Função para resetar o consumo de água e o estado de celebração
-  const resetWaterConsumed = () => {
-    setTotalWaterConsumed(0)
-    setGoalCelebrated(false)
-  }
-  
   // Estado para controlar a visibilidade do modal de adicionar água
   const [modalVisible, setModalVisible] = useState(false)
   
@@ -26,6 +20,50 @@ export default function HomeScreen() {
   
   // Estado para armazenar o item sendo editado
   const [editingItem, setEditingItem] = useState<HistoryItem | null>(null)
+  
+  // Estado para controlar a visibilidade do modal de parabéns
+  const [congratsModalVisible, setCongratsModalVisible] = useState(false)
+  
+  // Estado para controlar se a meta já foi celebrada (para evitar mostrar o modal várias vezes)
+  const [goalCelebrated, setGoalCelebrated] = useState(false)
+
+  // Lista de opções de água com seus respectivos valores em litros
+  const lista = {
+    '100 ml': 0.1,
+    '200 ml': 0.2,
+    '300 ml': 0.3,
+    '400 ml': 0.4,
+    '500 ml': 0.5,
+    '1 Litro': 1,
+  }
+
+  // Estado para controlar se o seletor está expandido
+  const [selectorExpanded, setSelectorExpanded] = useState(false)
+
+  // Estado para a quantidade selecionada
+  const [selectedAmount, setSelectedAmount] = useState("200 ml")
+
+  // Estado para o total de água consumida
+  const [totalWaterConsumed, setTotalWaterConsumed] = useState(0)
+
+  // Estado para os itens do histórico
+  const [historyItems, setHistoryItems] = useState<HistoryItem[]>([])
+
+  // Referência para o ScrollView do histórico
+  const historyScrollRef = useRef<ScrollView>(null)
+
+  // Animação para a expansão do seletor
+  const expandAnimation = useRef(new Animated.Value(0)).current
+
+  // Função para resetar o consumo de água e o estado de celebração
+  const resetWaterConsumed = () => {
+    // Limpar o histórico completamente
+    setHistoryItems([])
+    // Zerar o total de água consumida
+    setTotalWaterConsumed(0)
+    // Resetar o estado de celebração
+    setGoalCelebrated(false)
+  }
   
   // Função para abrir o modal de adicionar água
   const openAddWaterModal = () => {
@@ -55,45 +93,6 @@ export default function HomeScreen() {
     setModalVisible(true)
     setSelectorExpanded(false)
   }
-  
-  // Estado para controlar a visibilidade do modal de parabéns
-  const [congratsModalVisible, setCongratsModalVisible] = useState(false)
-  
-  // Estado para controlar se a meta já foi celebrada (para evitar mostrar o modal várias vezes)
-  const [goalCelebrated, setGoalCelebrated] = useState(false)
-
-  // Lista de opções de água com seus respectivos valores em litros
-  const lista = {
-    '100 ml': 0.1,
-    '200 ml': 0.2,
-    '300 ml': 0.3,
-    '400 ml': 0.4,
-    '500 ml': 0.5,
-    '1 Litro': 1,
-  }
-
-  // Estado para controlar se o seletor está expandido
-  const [selectorExpanded, setSelectorExpanded] = useState(false)
-
-  // Estado para a quantidade selecionada
-  const [selectedAmount, setSelectedAmount] = useState("200 ml")
-
-  // Estado para o total de água consumida
-  const [totalWaterConsumed, setTotalWaterConsumed] = useState(1.3)
-
-  // Estado para os itens do histórico
-  const [historyItems, setHistoryItems] = useState<HistoryItem[]>([
-    { id: 1, amount: 450, date: "23/03/2025", time: "16:20" },
-    { id: 2, amount: 450, date: "23/03/2025", time: "16:20" },
-    { id: 3, amount: 450, date: "23/03/2025", time: "16:20" },
-    { id: 4, amount: 450, date: "23/03/2025", time: "16:20" },
-  ])
-
-  // Referência para o ScrollView do histórico
-  const historyScrollRef = useRef<ScrollView>(null)
-
-  // Animação para a expansão do seletor
-  const expandAnimation = useRef(new Animated.Value(0)).current
 
   // Função para alternar a expansão do seletor
   const toggleSelector = () => {
@@ -134,9 +133,10 @@ export default function HomeScreen() {
 
   // Função para calcular o total de água consumida com base no histórico
   const calculateTotalWaterConsumed = (items: HistoryItem[]): number => {
-    return Number(
-      (items.reduce((sum, item) => sum + item.amount / 1000, 0)).toPrecision(2)
-    )
+    // Somamos todos os valores em ml e convertemos para litros
+    const totalInML = items.reduce((sum, item) => sum + item.amount, 0)
+    // Convertemos para litros e limitamos a 2 casas decimais
+    return parseFloat((totalInML / 1000).toFixed(2))
   }
 
   // Função para adicionar ou editar consumo de água
@@ -149,7 +149,6 @@ export default function HomeScreen() {
 
     if (amountValue > 0) {
       let updatedHistory: HistoryItem[]
-      let newTotal: number
 
       if (modalMode === 'add') {
         // Criar um novo item para o histórico
@@ -183,11 +182,11 @@ export default function HomeScreen() {
       setHistoryItems(updatedHistory)
       
       // Recalcular o total de água consumida
-      newTotal = calculateTotalWaterConsumed(updatedHistory)
+      const newTotal = calculateTotalWaterConsumed(updatedHistory)
       setTotalWaterConsumed(newTotal)
 
       // Mostrar no console o novo total
-      console.log(newTotal.toPrecision(2) + ' Litros')
+      console.log(newTotal + ' Litros')
       
       // Verificar se a meta foi atingida (2.5 litros) e ainda não foi celebrada
       if (newTotal >= 2.5 && !goalCelebrated) {
@@ -225,10 +224,17 @@ export default function HomeScreen() {
   const handleContinueAfterCongrats = () => {
     // Fechar o modal de parabéns
     setCongratsModalVisible(false)
-    // Resetar a quantidade de água consumida
-    setTotalWaterConsumed(0)
-    // Manter o histórico se desejar, ou pode limpar também:
-    // setHistoryItems([])
+    // Resetar completamente - limpar histórico e zerar contador
+    resetWaterConsumed()
+  }
+
+  // Função para excluir um item do histórico
+  const deleteHistoryItem = (id: number) => {
+    const updatedHistory = historyItems.filter(item => item.id !== id)
+    setHistoryItems(updatedHistory)
+    // Recalcular o total
+    const newTotal = calculateTotalWaterConsumed(updatedHistory)
+    setTotalWaterConsumed(newTotal)
   }
 
   return (
@@ -248,7 +254,7 @@ export default function HomeScreen() {
             <View style={styles.buttonContainer}>
               <TouchableOpacity style={styles.resetButton} onPress={resetWaterConsumed}>
                 <Ionicons name="refresh" size={20} color="white" />
-                <Text style={styles.resetButtonText}>Reiniciar</Text>
+                <Text style={styles.resetButtonText}>Reset</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.addButton} onPress={openAddWaterModal}>
                 <Ionicons name="add" size={24} color="white" style={styles.addIcon} />
@@ -287,34 +293,38 @@ export default function HomeScreen() {
             showsVerticalScrollIndicator={false}
             nestedScrollEnabled={true}
           >
-            {historyItems.map((item) => (
-              <View key={item.id} style={styles.historyItem}>
-                <View style={styles.historyItemLeft}>
-                  <View style={styles.bottleIconContainer}>
-                    <Ionicons name="water" size={24} color="#2196F3" />
+            {historyItems.length > 0 ? (
+              historyItems.map((item) => (
+                <View key={item.id} style={styles.historyItem}>
+                  <View style={styles.historyItemLeft}>
+                    <View style={styles.bottleIconContainer}>
+                      <Ionicons name="water" size={24} color="#2196F3" />
+                    </View>
+                    <Text style={styles.historyAmount}>{item.amount} ml</Text>
                   </View>
-                  <Text style={styles.historyAmount}>{item.amount} ml</Text>
-                </View>
 
-                <View style={styles.historyItemCenter}>
-                  <View>
-                    <Text style={styles.historyLabel}>Data:</Text>
-                    <Text style={styles.historyValue}>{item.date}</Text>
+                  <View style={styles.historyItemCenter}>
+                    <View>
+                      <Text style={styles.historyLabel}>Data:</Text>
+                      <Text style={styles.historyValue}>{item.date}</Text>
+                    </View>
+                    <View>
+                      <Text style={styles.historyLabel}>Horário:</Text>
+                      <Text style={styles.historyValue}>{item.time}</Text>
+                    </View>
                   </View>
-                  <View>
-                    <Text style={styles.historyLabel}>Horário:</Text>
-                    <Text style={styles.historyValue}>{item.time}</Text>
-                  </View>
-                </View>
 
-                <TouchableOpacity 
-                  style={styles.waterActionButton}
-                  onPress={() => openEditWaterModal(item)}
-                >
-                  <Ionicons name="pencil" size={20} color="#2196F3" />
-                </TouchableOpacity>
-              </View>
-            ))}
+                  <TouchableOpacity 
+                    style={styles.waterActionButton}
+                    onPress={() => openEditWaterModal(item)}
+                  >
+                    <Ionicons name="pencil" size={20} color="#2196F3" />
+                  </TouchableOpacity>
+                </View>
+              ))
+            ) : (
+              <Text style={styles.emptyHistoryText}>Nenhum registro encontrado</Text>
+            )}
           </ScrollView>
         </View>
       </ScrollView>
@@ -643,6 +653,12 @@ const styles = StyleSheet.create({
     borderColor: "#2196F3",
     alignItems: "center",
     justifyContent: "center",
+  },
+  emptyHistoryText: {
+    textAlign: 'center',
+    color: '#666',
+    marginTop: 20,
+    fontSize: 16,
   },
   // Estilos para o modal
   centeredView: {
