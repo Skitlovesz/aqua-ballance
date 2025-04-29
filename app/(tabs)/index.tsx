@@ -254,7 +254,7 @@ export default function HomeScreen() {
             <View style={styles.buttonContainer}>
               <TouchableOpacity style={styles.resetButton} onPress={resetWaterConsumed}>
                 <Ionicons name="refresh" size={20} color="white" />
-                <Text style={styles.resetButtonText}>Reset</Text>
+                <Text style={styles.resetButtonText}>Reiniciar</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.addButton} onPress={openAddWaterModal}>
                 <Ionicons name="add" size={24} color="white" style={styles.addIcon} />
