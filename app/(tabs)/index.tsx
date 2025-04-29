@@ -12,10 +12,21 @@ type HistoryItem = {
 }
 
 export default function HomeScreen() {
+  
+  const resetWaterConsumed = () => {
+    setTotalWaterConsumed(0)
+    setGoalCelebrated(false)
+  }
 
   const [modalVisible, setModalVisible] = useState(false)
+  
+ 
+  const [congratsModalVisible, setCongratsModalVisible] = useState(false)
+  
+  
+  const [goalCelebrated, setGoalCelebrated] = useState(false)
 
-
+  
   const lista = {
     '100 ml': 0.1,
     '200 ml': 0.2,
@@ -25,16 +36,16 @@ export default function HomeScreen() {
     '1 Litro': 1,
   }
 
-
+  
   const [selectorExpanded, setSelectorExpanded] = useState(false)
 
-
+  
   const [selectedAmount, setSelectedAmount] = useState("200 ml")
 
-
+ 
   const [totalWaterConsumed, setTotalWaterConsumed] = useState(1.3)
 
-
+ 
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([
     { id: 1, amount: 450, date: "23/03/2025", time: "16:20" },
     { id: 2, amount: 450, date: "23/03/2025", time: "16:20" },
@@ -45,10 +56,10 @@ export default function HomeScreen() {
  
   const historyScrollRef = useRef<ScrollView>(null)
 
-
+ 
   const expandAnimation = useRef(new Animated.Value(0)).current
 
- 
+  
   const toggleSelector = () => {
     const newValue = !selectorExpanded
     setSelectorExpanded(newValue)
@@ -85,15 +96,16 @@ export default function HomeScreen() {
     return `${hours}:${minutes}`
   }
 
-
+  
   const addWaterConsumption = () => {
-   
+    
     const amountValue = lista[selectedAmount as keyof typeof lista]
     
-    
+  
     const amountInMl = amountValue * 1000
 
     if (amountValue > 0) {
+    
       const newItem: HistoryItem = {
         id: Date.now(), 
         amount: amountInMl,
@@ -101,25 +113,38 @@ export default function HomeScreen() {
         time: getCurrentTime(),
       }
 
- 
+      
       const updatedHistory = [newItem, ...historyItems]
       setHistoryItems(updatedHistory)
 
-
+    
       const newTotal = Number((totalWaterConsumed + amountValue).toPrecision(2))
       setTotalWaterConsumed(newTotal)
 
-
+     
       console.log(newTotal.toPrecision(2) + ' Litros')
-
-
-      setModalVisible(false)
-
-
-      setSelectorExpanded(false)
+      
+  
+      if (newTotal >= 2.5 && !goalCelebrated) {
+      
+        setModalVisible(false)
+      
+        setSelectorExpanded(false)
+        
+        setTimeout(() => {
+          setCongratsModalVisible(true)
+          setGoalCelebrated(true)
+        }, 500)
+      } else {
+       
+        setModalVisible(false)
+     
+        setSelectorExpanded(false)
+      }
     }
   }
 
+  
   useEffect(() => {
     if (historyScrollRef.current) {
       setTimeout(() => {
@@ -128,7 +153,17 @@ export default function HomeScreen() {
     }
   }, [historyItems.length])
 
+  
   const progressPercentage = Math.min((totalWaterConsumed / 2.5) * 100, 100)
+
+
+  const handleContinueAfterCongrats = () => {
+  
+    setCongratsModalVisible(false)
+  
+    setTotalWaterConsumed(0)
+
+  }
 
   return (
     <View style={styles.container}>
@@ -144,10 +179,16 @@ export default function HomeScreen() {
               <Text style={styles.waterAmount}>{totalWaterConsumed} Litros</Text>
               <Text style={styles.waterLabel}>Consumidos</Text>
             </View>
-            <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
-              <Ionicons name="add" size={24} color="white" style={styles.addIcon} />
-              <Text style={styles.addButtonText}>Adicionar</Text>
-            </TouchableOpacity>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity style={styles.resetButton} onPress={resetWaterConsumed}>
+                <Ionicons name="refresh" size={20} color="white" />
+                <Text style={styles.resetButtonText}>Reset</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
+                <Ionicons name="add" size={24} color="white" style={styles.addIcon} />
+                <Text style={styles.addButtonText}>Adicionar</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.waveContainer}>
@@ -209,6 +250,7 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
+     
       <Modal
         animationType="fade"
         transparent={true}
@@ -240,6 +282,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
 
+         
             <View style={styles.selectorContainer}>
               <TouchableOpacity style={styles.amountSelector} onPress={toggleSelector}>
                 <Ionicons name="water-outline" size={20} color="#2196F3" style={styles.selectorIcon} />
@@ -247,6 +290,7 @@ export default function HomeScreen() {
                 <Ionicons name={selectorExpanded ? "chevron-up" : "chevron-down"} size={20} color="#2196F3" />
               </TouchableOpacity>
 
+            
               {selectorExpanded && (
                 <View style={styles.optionsContainer}>
                   <ScrollView style={styles.optionsScroll} nestedScrollEnabled={true}>
@@ -272,12 +316,38 @@ export default function HomeScreen() {
               )}
             </View>
 
+         
             <TouchableOpacity style={styles.addConsumptionButton} onPress={addWaterConsumption}>
               <Text style={styles.addConsumptionButtonText}>Adicionar</Text>
               <Ionicons name="add" size={20} color="white" />
             </TouchableOpacity>
           </TouchableOpacity>
         </TouchableOpacity>
+      </Modal>
+
+   
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={congratsModalVisible}
+        onRequestClose={() => setCongratsModalVisible(false)}
+      >
+        <View style={styles.centeredView}>
+          <View style={styles.congratsModalView}>
+            <View style={styles.congratsIconContainer}>
+              <Ionicons name="trophy" size={50} color="#FFD700" />
+            </View>
+            <Text style={styles.congratsTitle}>Parabéns!</Text>
+            <Text style={styles.congratsMessage}>Você concluiu sua META!</Text>
+            <Text style={styles.congratsSubtitle}>2.5 Litros de água consumidos</Text>
+            <TouchableOpacity
+              style={styles.congratsButton}
+              onPress={handleContinueAfterCongrats}
+            >
+              <Text style={styles.congratsButtonText}>Continuar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
     </View>
   )
@@ -320,6 +390,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 30,
     zIndex: 1,
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  resetButton: {
+    backgroundColor: "#FF5252",
+    borderRadius: 25,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginRight: 8,
+  },
+  resetButtonText: {
+    color: "white",
+    fontWeight: "500",
+    marginLeft: 3,
   },
   waterAmount: {
     fontSize: 24,
@@ -474,6 +562,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  
   centeredView: {
     flex: 1,
     justifyContent: "center",
@@ -588,5 +677,61 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
     marginRight: 5,
+  },
+  
+  congratsModalView: {
+    width: "85%",
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 25,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  congratsIconContainer: {
+    backgroundColor: "#E3F2FD",
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  congratsTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#2196F3",
+    marginBottom: 10,
+  },
+  congratsMessage: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  congratsSubtitle: {
+    fontSize: 16,
+    color: "#666",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  congratsButton: {
+    backgroundColor: "#2196F3",
+    borderRadius: 25,
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    elevation: 2,
+  },
+  congratsButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16,
   },
 })
