@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, Animated, Pressable } from "react-native"
+
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, Animated, Pressable, TextInput } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { useState, useRef, useEffect } from "react"
 import React from "react"
@@ -14,19 +15,14 @@ type HistoryItem = {
 export default function HomeScreen() {
   // Estado para controlar a visibilidade do modal de adicionar água
   const [modalVisible, setModalVisible] = useState(false)
-  
   // Estado para o modo do modal (adicionar ou editar)
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add')
-  
   // Estado para armazenar o item sendo editado
   const [editingItem, setEditingItem] = useState<HistoryItem | null>(null)
-  
   // Estado para controlar a visibilidade do modal de parabéns
   const [congratsModalVisible, setCongratsModalVisible] = useState(false)
-  
   // Estado para controlar se a meta já foi celebrada (para evitar mostrar o modal várias vezes)
   const [goalCelebrated, setGoalCelebrated] = useState(false)
-
   // Lista de opções de água com seus respectivos valores em litros
   const lista = {
     '100 ml': 0.1,
@@ -36,25 +32,22 @@ export default function HomeScreen() {
     '500 ml': 0.5,
     '1 Litro': 1,
   }
-
   // Estado para controlar se o seletor está expandido
   const [selectorExpanded, setSelectorExpanded] = useState(false)
-
   // Estado para a quantidade selecionada
   const [selectedAmount, setSelectedAmount] = useState("200 ml")
-
+  // Estado para o valor personalizado em ml
+  const [customValue, setCustomValue] = useState('')
+  // Estado para controlar se estamos usando um valor personalizado
+  const [isCustomValueSelected, setIsCustomValueSelected] = useState(false)
   // Estado para o total de água consumida
   const [totalWaterConsumed, setTotalWaterConsumed] = useState(0)
-
   // Estado para os itens do histórico
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([])
-
   // Referência para o ScrollView do histórico
   const historyScrollRef = useRef<ScrollView>(null)
-
   // Animação para a expansão do seletor
   const expandAnimation = useRef(new Animated.Value(0)).current
-
   // Função para resetar o consumo de água e o estado de celebração
   const resetWaterConsumed = () => {
     // Limpar o histórico completamente
@@ -64,13 +57,14 @@ export default function HomeScreen() {
     // Resetar o estado de celebração
     setGoalCelebrated(false)
   }
-  
   // Função para abrir o modal de adicionar água
   const openAddWaterModal = () => {
     setModalMode('add')
     setModalVisible(true)
     setSelectorExpanded(false)
     setEditingItem(null)
+    setIsCustomValueSelected(false)
+    setCustomValue('')
   }
   
   // Função para abrir o modal de editar água
@@ -78,16 +72,24 @@ export default function HomeScreen() {
     // Converter de ml para o formato da lista
     const amountInLiters = item.amount / 1000
     
-    // Encontrar a chave correspondente ao valor ou usar a opção mais próxima
-    let closestKey = '200 ml'
+    // Verificar se o valor existe na lista de valores predefinidos
+    let foundInList = false
     for (const [key, value] of Object.entries(lista)) {
       if (value === amountInLiters) {
-        closestKey = key
+        setSelectedAmount(key)
+        foundInList = true
         break
       }
     }
     
-    setSelectedAmount(closestKey)
+    // Se não encontrou na lista, é um valor personalizado
+    if (!foundInList) {
+      setIsCustomValueSelected(true)
+      setCustomValue(item.amount.toString())
+    } else {
+      setIsCustomValueSelected(false)
+    }
+    
     setModalMode('edit')
     setEditingItem(item)
     setModalVisible(true)
@@ -109,6 +111,13 @@ export default function HomeScreen() {
   // Função para selecionar uma quantidade
   const selectAmount = (amount: string) => {
     setSelectedAmount(amount)
+    setIsCustomValueSelected(false)
+    toggleSelector()
+  }
+  
+  // Função para selecionar a opção personalizada
+  const selectCustomAmount = () => {
+    setIsCustomValueSelected(true)
     toggleSelector()
   }
 
@@ -141,13 +150,27 @@ export default function HomeScreen() {
 
   // Função para adicionar ou editar consumo de água
   const handleWaterConsumption = () => {
-    // Obter o valor em litros da opção selecionada
-    const amountValue = lista[selectedAmount as keyof typeof lista]
+    let amountInMl: number = 0;
     
-    // Calcular o valor em mililitros para o histórico
-    const amountInMl = amountValue * 1000
+    // Verificar se estamos usando um valor personalizado ou um valor da lista
+    if (isCustomValueSelected) {
+      // Converter o valor personalizado para número
+      const parsedValue = parseInt(customValue)
+      
+      // Verificar se o valor é válido
+      if (isNaN(parsedValue) || parsedValue <= 0) {
+        alert('Por favor, insira um valor válido maior que zero.')
+        return
+      }
+      
+      amountInMl = parsedValue
+    } else {
+      // Obter o valor em litros da opção selecionada e converter para ml
+      const amountValue = lista[selectedAmount as keyof typeof lista]
+      amountInMl = amountValue * 1000
+    }
 
-    if (amountValue > 0) {
+    if (amountInMl > 0) {
       let updatedHistory: HistoryItem[]
 
       if (modalMode === 'add') {
@@ -365,11 +388,32 @@ export default function HomeScreen() {
 
             {/* Seletor de quantidade com dropdown */}
             <View style={styles.selectorContainer}>
-              <TouchableOpacity style={styles.amountSelector} onPress={toggleSelector}>
+              <TouchableOpacity 
+                style={[styles.amountSelector, isCustomValueSelected && styles.customAmountSelector]} 
+                onPress={toggleSelector}
+              >
                 <Ionicons name="water-outline" size={20} color="#2196F3" style={styles.selectorIcon} />
-                <Text style={styles.selectorText}>{selectedAmount}</Text>
+                {isCustomValueSelected ? (
+                  <Text style={styles.selectorText}>Personalizado</Text>
+                ) : (
+                  <Text style={styles.selectorText}>{selectedAmount}</Text>
+                )}
                 <Ionicons name={selectorExpanded ? "chevron-up" : "chevron-down"} size={20} color="#2196F3" />
               </TouchableOpacity>
+
+              {/* Campo para valor personalizado */}
+              {isCustomValueSelected && (
+                <View style={styles.customInputContainer}>
+                  <TextInput
+                    style={styles.customInput}
+                    placeholder="Digite o valor em ml"
+                    keyboardType="numeric"
+                    value={customValue}
+                    onChangeText={setCustomValue}
+                  />
+                  <Text style={styles.customInputUnit}>ml</Text>
+                </View>
+              )}
 
               {/* Opções do seletor usando Object.keys */}
               {selectorExpanded && (
@@ -378,20 +422,36 @@ export default function HomeScreen() {
                     {Object.keys(lista).map((key, index) => (
                       <Pressable
                         key={index}
-                        style={[styles.optionItem, selectedAmount === key && styles.selectedOption]}
+                        style={[styles.optionItem, selectedAmount === key && !isCustomValueSelected && styles.selectedOption]}
                         onPress={() => selectAmount(key)}
                       >
                         <Ionicons
                           name="water"
                           size={16}
-                          color={selectedAmount === key ? "white" : "#2196F3"}
+                          color={selectedAmount === key && !isCustomValueSelected ? "white" : "#2196F3"}
                           style={styles.optionIcon}
                         />
-                        <Text style={[styles.optionText, selectedAmount === key && styles.selectedOptionText]}>
+                        <Text style={[styles.optionText, selectedAmount === key && !isCustomValueSelected && styles.selectedOptionText]}>
                           {key}
                         </Text>
                       </Pressable>
                     ))}
+                    
+                    {/* Opção para valor personalizado */}
+                    <Pressable
+                      style={[styles.optionItem, isCustomValueSelected && styles.selectedOption]}
+                      onPress={selectCustomAmount}
+                    >
+                      <Ionicons
+                        name="create-outline"
+                        size={16}
+                        color={isCustomValueSelected ? "white" : "#2196F3"}
+                        style={styles.optionIcon}
+                      />
+                      <Text style={[styles.optionText, isCustomValueSelected && styles.selectedOptionText]}>
+                        Personalizado
+                      </Text>
+                    </Pressable>
                   </ScrollView>
                 </View>
               )}
@@ -712,6 +772,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 15,
   },
+  customAmountSelector: {
+    backgroundColor: "#E8F5E9", // Cor diferente para indicar que é um valor personalizado
+  },
   selectorIcon: {
     marginRight: 10,
   },
@@ -719,6 +782,30 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: "#2196F3",
+  },
+  // Estilos para o campo de entrada personalizado
+  customInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#2196F3",
+    borderRadius: 8,
+    marginTop: 10,
+    paddingHorizontal: 10,
+    backgroundColor: "white",
+  },
+  customInput: {
+    flex: 1,
+    height: 45,
+    paddingVertical: 8,
+    paddingHorizontal: 5,
+    fontSize: 16,
+    color: "#2196F3",
+  },
+  customInputUnit: {
+    fontSize: 16,
+    color: "#2196F3",
+    marginLeft: 5,
   },
   optionsContainer: {
     width: "100%",
@@ -762,74 +849,74 @@ const styles = StyleSheet.create({
     color: "white",
   },
   addConsumptionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#2196F3",
-    borderRadius: 25,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    width: "100%",
-  },
-  addConsumptionButtonText: {
-    color: "white",
-    fontWeight: "bold",
-    marginRight: 5,
-  },
-  // Estilos para o modal de parabéns
-  congratsModalView: {
-    width: "85%",
-    backgroundColor: "white",
-    borderRadius: 20,
-    padding: 25,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  congratsIconContainer: {
-    backgroundColor: "#E3F2FD",
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  congratsTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#2196F3",
-    marginBottom: 10,
-  },
-  congratsMessage: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  congratsSubtitle: {
-    fontSize: 16,
-    color: "#666",
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  congratsButton: {
-    backgroundColor: "#2196F3",
-    borderRadius: 25,
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    elevation: 2,
-  },
-  congratsButtonText: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-})
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#2196F3",
+        borderRadius: 25,
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        width: "100%",
+      },
+      addConsumptionButtonText: {
+        color: "white",
+        fontWeight: "bold",
+        marginRight: 5,
+      },
+      // Estilos para o modal de parabéns
+      congratsModalView: {
+        width: "85%",
+        backgroundColor: "white",
+        borderRadius: 20,
+        padding: 25,
+        alignItems: "center",
+        shadowColor: "#000",
+        shadowOffset: {
+          width: 0,
+          height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+      },
+      congratsIconContainer: {
+        backgroundColor: "#E3F2FD",
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        justifyContent: "center",
+        alignItems: "center",
+        marginBottom: 20,
+      },
+      congratsTitle: {
+        fontSize: 24,
+        fontWeight: "bold",
+        color: "#2196F3",
+        marginBottom: 10,
+      },
+      congratsMessage: {
+        fontSize: 18,
+        fontWeight: "bold",
+        color: "#333",
+        marginBottom: 10,
+        textAlign: "center",
+      },
+      congratsSubtitle: {
+        fontSize: 16,
+        color: "#666",
+        marginBottom: 20,
+        textAlign: "center",
+      },
+      congratsButton: {
+        backgroundColor: "#2196F3",
+        borderRadius: 25,
+        paddingVertical: 12,
+        paddingHorizontal: 30,
+        elevation: 2,
+      },
+      congratsButtonText: {
+        color: "white",
+        fontWeight: "bold",
+        fontSize: 16,
+      },
+    })
