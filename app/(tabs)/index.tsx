@@ -1,10 +1,11 @@
-
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, Animated, Pressable, TextInput } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { useState, useRef, useEffect } from "react"
 import React from "react"
+import { useRoute, RouteProp, useNavigation } from "@react-navigation/native"
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 
-// Definir o tipo para os itens do histórico
 type HistoryItem = {
   id: number
   amount: number
@@ -12,7 +13,41 @@ type HistoryItem = {
   time: string
 }
 
+
+type RootStackParamList = {
+  Profile: undefined
+  MainTabs: { waterIntake?: number } | undefined
+}
+
+type UserData = {
+  weight: number
+  height: number
+  name: string
+  waterIntake: number
+}
+
+type MainTabsRouteProp = RouteProp<RootStackParamList, "MainTabs">
+type MainTabsNavigationProp = NativeStackNavigationProp<RootStackParamList, "MainTabs">
+
 export default function HomeScreen() {
+  // Navegação e rota
+  const route = useRoute<MainTabsRouteProp>()
+  const navigation = useNavigation<MainTabsNavigationProp>()
+  
+  // Estado para os dados do usuário
+  const [userData, setUserData] = useState<UserData>({
+    weight: 0,
+    height: 0,
+    name: "Usuário",
+    waterIntake: 0
+  })
+  
+  // Recuperar o consumo diário recomendado dos parâmetros da rota ou estado (em ml)
+  const [recommendedWaterIntake, setRecommendedWaterIntake] = useState(0)
+  
+  // Converter para litros para exibição
+  const recommendedWaterIntakeLiters = recommendedWaterIntake / 1000
+  
   // Estado para controlar a visibilidade do modal de adicionar água
   const [modalVisible, setModalVisible] = useState(false)
   // Estado para o modo do modal (adicionar ou editar)
@@ -23,6 +58,8 @@ export default function HomeScreen() {
   const [congratsModalVisible, setCongratsModalVisible] = useState(false)
   // Estado para controlar se a meta já foi celebrada (para evitar mostrar o modal várias vezes)
   const [goalCelebrated, setGoalCelebrated] = useState(false)
+  // Estado para controlar a visibilidade do modal de confirmação de exclusão
+  const [deleteConfirmModalVisible, setDeleteConfirmModalVisible] = useState(false)
   // Lista de opções de água com seus respectivos valores em litros
   const lista = {
     '100 ml': 0.1,
@@ -32,22 +69,106 @@ export default function HomeScreen() {
     '500 ml': 0.5,
     '1 Litro': 1,
   }
-  // Estado para controlar se o seletor está expandido
+  
+  // Estados para confirmação de exclusão
+  const [confirmDeleteModalVisible, setConfirmDeleteModalVisible] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState<HistoryItem | null>(null)
   const [selectorExpanded, setSelectorExpanded] = useState(false)
-  // Estado para a quantidade selecionada
   const [selectedAmount, setSelectedAmount] = useState("200 ml")
-  // Estado para o valor personalizado em ml
+  // valor personalizado em ml
   const [customValue, setCustomValue] = useState('')
-  // Estado para controlar se estamos usando um valor personalizado
+  // controlar se esta usando um valor personalizado
   const [isCustomValueSelected, setIsCustomValueSelected] = useState(false)
-  // Estado para o total de água consumida
+  // total de água consumida
   const [totalWaterConsumed, setTotalWaterConsumed] = useState(0)
-  // Estado para os itens do histórico
+  // itens do histórico
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([])
   // Referência para o ScrollView do histórico
   const historyScrollRef = useRef<ScrollView>(null)
   // Animação para a expansão do seletor
   const expandAnimation = useRef(new Animated.Value(0)).current
+
+  // Função para calcular o consumo diário de água com base no peso e altura
+  const calculateWaterIntake = (weight: number, height: number): number => {
+    if (weight <= 0 || height <= 0) return 0
+    
+    // Fórmula para calcular o consumo diário: 
+    // Peso (kg) * 35 + Altura (cm) * 0.2 = ml por dia
+    const waterIntakeInML = Math.round(weight * 35 + height * 0.2)
+    
+    return waterIntakeInML
+  }
+  
+  // Função para salvar os dados do usuário
+  const saveUserData = async (data: UserData) => {
+    try {
+      await AsyncStorage.setItem('userData', JSON.stringify(data))
+      console.log('Dados do usuário salvos com sucesso')
+    } catch (error) {
+      console.error('Erro ao salvar dados do usuário:', error)
+    }
+  }
+  
+  // Função para carregar os dados do usuário
+  const loadUserData = async () => {
+    try {
+      const jsonValue = await AsyncStorage.getItem('userData')
+      if (jsonValue !== null) {
+        const data = JSON.parse(jsonValue) as UserData
+        setUserData(data)
+        
+        // Calcular o consumo diário com base nos dados carregados
+        const intake = calculateWaterIntake(data.weight, data.height)
+        setRecommendedWaterIntake(intake)
+        return data
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados do usuário:', error)
+    }
+    return null
+  }
+  
+  // Efeito para carregar os dados do usuário e calcular a meta
+  useEffect(() => {
+    const initializeData = async () => {
+      if (route.params?.waterIntake) {
+        console.log('Received water intake from route params:', route.params.waterIntake);
+        setRecommendedWaterIntake(route.params.waterIntake);
+        const updatedUserData = {...userData};
+        updatedUserData.waterIntake = route.params.waterIntake;
+        setUserData(updatedUserData);
+
+        try {
+          await AsyncStorage.setItem('userData', JSON.stringify(updatedUserData));
+          console.log('Updated user data saved with new water intake');
+        } catch (error) {
+          console.error('Error saving updated user data:', error);
+        }
+      } else {
+        try {
+          const data = await loadUserData();
+          
+          if (!data || data.weight <= 0 || data.height <= 0) {
+            alert('Por favor, configure seu perfil para calcular sua meta de consumo de água diário.');
+            setTimeout(() => {
+              goToProfile();
+            }, 100);
+          } else if (data.waterIntake > 0) {
+            setRecommendedWaterIntake(data.waterIntake);
+          }
+        } catch (error) {
+          console.error('Error loading user data:', error);
+          alert('Erro ao carregar dados. Por favor, configure seu perfil.');
+          setTimeout(() => {
+            goToProfile();
+          }, 100);
+        }
+      }
+    };
+    
+    initializeData();
+  }, [route.params]);
+  
   // Função para resetar o consumo de água e o estado de celebração
   const resetWaterConsumed = () => {
     // Limpar o histórico completamente
@@ -56,6 +177,11 @@ export default function HomeScreen() {
     setTotalWaterConsumed(0)
     // Resetar o estado de celebração
     setGoalCelebrated(false)
+  }
+  // Função para voltar à tela de perfil para recalcular a meta
+  const goToProfile = () => {
+    // Navegar para a tela de perfil para recalcular o consumo recomendado com base no peso e altura
+    navigation.navigate("Profile")
   }
   // Função para abrir o modal de adicionar água
   const openAddWaterModal = () => {
@@ -66,13 +192,12 @@ export default function HomeScreen() {
     setIsCustomValueSelected(false)
     setCustomValue('')
   }
-  
+
   // Função para abrir o modal de editar água
   const openEditWaterModal = (item: HistoryItem) => {
     // Converter de ml para o formato da lista
     const amountInLiters = item.amount / 1000
-    
-    // Verificar se o valor existe na lista de valores predefinidos
+    // Verifica se o valor existe na lista de valores predefinidos
     let foundInList = false
     for (const [key, value] of Object.entries(lista)) {
       if (value === amountInLiters) {
@@ -81,7 +206,6 @@ export default function HomeScreen() {
         break
       }
     }
-    
     // Se não encontrou na lista, é um valor personalizado
     if (!foundInList) {
       setIsCustomValueSelected(true)
@@ -95,7 +219,6 @@ export default function HomeScreen() {
     setModalVisible(true)
     setSelectorExpanded(false)
   }
-
   // Função para alternar a expansão do seletor
   const toggleSelector = () => {
     const newValue = !selectorExpanded
@@ -107,20 +230,17 @@ export default function HomeScreen() {
       useNativeDriver: false,
     }).start()
   }
-
   // Função para selecionar uma quantidade
   const selectAmount = (amount: string) => {
     setSelectedAmount(amount)
     setIsCustomValueSelected(false)
     toggleSelector()
   }
-  
   // Função para selecionar a opção personalizada
   const selectCustomAmount = () => {
     setIsCustomValueSelected(true)
     toggleSelector()
   }
-
   // Função para formatar a data atual
   const getCurrentDate = (): string => {
     const now = new Date()
@@ -181,7 +301,6 @@ export default function HomeScreen() {
           date: getCurrentDate(),
           time: getCurrentTime(),
         }
-
         // Adicionar o novo item ao início do histórico
         updatedHistory = [newItem, ...historyItems]
       } else {
@@ -211,8 +330,8 @@ export default function HomeScreen() {
       // Mostrar no console o novo total
       console.log(newTotal + ' Litros')
       
-      // Verificar se a meta foi atingida (2.5 litros) e ainda não foi celebrada
-      if (newTotal >= 2.5 && !goalCelebrated) {
+      // Verificar se a meta foi atingida e ainda não foi celebrada
+      if (newTotal >= recommendedWaterIntakeLiters && !goalCelebrated) {
         // Fechar o modal de adição primeiro
         setModalVisible(false)
         // Resetar o estado do seletor
@@ -239,9 +358,11 @@ export default function HomeScreen() {
       }, 300)
     }
   }, [historyItems.length])
-
-  // Calcular a porcentagem de progresso (baseado na meta de 2.5 litros)
-  const progressPercentage = Math.min((totalWaterConsumed / 2.5) * 100, 100)
+  // Calcular a porcentagem de progresso baseado na meta calculada
+  // Evitamos divisão por zero se a meta ainda não foi definida
+  const progressPercentage = recommendedWaterIntakeLiters > 0 
+    ? Math.min((totalWaterConsumed / recommendedWaterIntakeLiters) * 100, 100)
+    : 0
 
   // Função para lidar com o clique no botão "Continuar" do modal de parabéns
   const handleContinueAfterCongrats = () => {
@@ -250,7 +371,6 @@ export default function HomeScreen() {
     // Resetar completamente - limpar histórico e zerar contador
     resetWaterConsumed()
   }
-
   // Função para excluir um item do histórico
   const deleteHistoryItem = (id: number) => {
     const updatedHistory = historyItems.filter(item => item.id !== id)
@@ -259,12 +379,21 @@ export default function HomeScreen() {
     const newTotal = calculateTotalWaterConsumed(updatedHistory)
     setTotalWaterConsumed(newTotal)
   }
+  
+  // Função para confirmar a exclusão
+  const confirmDelete = () => {
+    if (itemToDelete) {
+      deleteHistoryItem(itemToDelete.id)
+      setConfirmDeleteModalVisible(false)
+      setItemToDelete(null)
+    }
+  }
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.welcomeText}>Bem-Vindo,</Text>
-        <Text style={styles.headerTitle}>Usuário!</Text>
+        <Text style={styles.headerTitle}>{userData.name || "Usuário"}!</Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -297,11 +426,15 @@ export default function HomeScreen() {
               <View style={[styles.progressFill, { width: `${progressPercentage}%` }]} />
             </View>
             <View style={styles.goalContainer}>
-              <Text style={styles.goalText}>2.5 Litros</Text>
+              <Text style={styles.goalText}>
+                {recommendedWaterIntakeLiters > 0 
+                  ? `${recommendedWaterIntakeLiters.toFixed(1)} Litros` 
+                  : "Configure seu perfil"}
+              </Text>
               <Text style={styles.goalLabel}>Minha Meta</Text>
             </View>
-            <TouchableOpacity style={styles.infoButton}>
-              <Ionicons name="water-outline" size={24} color="#2196F3" />
+            <TouchableOpacity style={styles.infoButton} onPress={goToProfile}>
+              <Ionicons name="settings-outline" size={24} color="#2196F3" />
             </TouchableOpacity>
           </View>
         </View>
@@ -351,7 +484,6 @@ export default function HomeScreen() {
           </ScrollView>
         </View>
       </ScrollView>
-
       {/* Modal para adicionar ou editar consumo de água */}
       <Modal
         animationType="fade"
@@ -457,6 +589,23 @@ export default function HomeScreen() {
               )}
             </View>
 
+            {/* Botão de exclusão - só aparece no modo de edição */}
+            {modalMode === 'edit' && editingItem && (
+              <TouchableOpacity 
+                style={styles.deleteConsumptionButton} 
+                onPress={() => {
+                  if (editingItem) {
+                    setItemToDelete(editingItem)
+                    setConfirmDeleteModalVisible(true)
+                    setModalVisible(false) // Fecha o modal de edição
+                  }
+                }}
+              >
+                <Text style={styles.deleteConsumptionButtonText}>Excluir</Text>
+                <Ionicons name="trash-outline" size={20} color="white" />
+              </TouchableOpacity>
+            )}
+
             {/* Botão de adicionar ou editar */}
             <TouchableOpacity style={styles.addConsumptionButton} onPress={handleWaterConsumption}>
               <Text style={styles.addConsumptionButtonText}>
@@ -466,6 +615,38 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </TouchableOpacity>
         </TouchableOpacity>
+      </Modal>
+
+      {/* Modal de confirmação para exclusão */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={confirmDeleteModalVisible}
+        onRequestClose={() => setConfirmDeleteModalVisible(false)}
+      >
+        <View style={styles.centeredView}>
+          <View style={styles.confirmationModalView}>
+            <Text style={styles.confirmationTitle}>Confirmar exclusão</Text>
+            <Text style={styles.confirmationMessage}>
+              Tem certeza que deseja excluir este registro?
+            </Text>
+            <View style={styles.confirmationButtonsContainer}>
+              <TouchableOpacity
+                style={styles.confirmCancelButton}
+                onPress={() => setConfirmDeleteModalVisible(false)}
+              >
+                <Text style={styles.confirmButtonText}>Não</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.confirmDeleteButton}
+                onPress={confirmDelete}
+              >
+                <Text style={styles.confirmDeleteButtonText}>Sim</Text>
+                <Ionicons name="trash-outline" size={16} color="white" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </Modal>
 
       {/* Modal de parabéns quando atingir a meta */}
@@ -482,7 +663,7 @@ export default function HomeScreen() {
             </View>
             <Text style={styles.congratsTitle}>Parabéns!</Text>
             <Text style={styles.congratsMessage}>Você concluiu sua META!</Text>
-            <Text style={styles.congratsSubtitle}>2.5 Litros de água consumidos</Text>
+            <Text style={styles.congratsSubtitle}>{recommendedWaterIntakeLiters.toFixed(1)} Litros de água consumidos</Text>
             <TouchableOpacity
               style={styles.congratsButton}
               onPress={handleContinueAfterCongrats}
@@ -720,7 +901,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontSize: 16,
   },
-  // Estilos para o modal
+  // css para o modal
   centeredView: {
     flex: 1,
     justifyContent: "center",
@@ -773,7 +954,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
   },
   customAmountSelector: {
-    backgroundColor: "#E8F5E9", // Cor diferente para indicar que é um valor personalizado
+    backgroundColor: "#E8F5E9", 
   },
   selectorIcon: {
     marginRight: 10,
@@ -783,7 +964,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#2196F3",
   },
-  // Estilos para o campo de entrada personalizado
+  // css para o input de entrada personalizado
   customInputContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -839,84 +1020,161 @@ const styles = StyleSheet.create({
     backgroundColor: "#2196F3",
   },
   optionIcon: {
-    marginRight: 10,
-  },
+        marginRight: 10,
+      },
   optionText: {
-    fontSize: 16,
-    color: "#2196F3",
-  },
-  selectedOptionText: {
-    color: "white",
-  },
+        fontSize: 16,
+        color: "#2196F3",
+      },
+      selectedOptionText: {
+        color: "white",
+      },
   addConsumptionButton: {
         flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "#2196F3",
-        borderRadius: 25,
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        width: "100%",
-      },
-      addConsumptionButtonText: {
-        color: "white",
-        fontWeight: "bold",
-        marginRight: 5,
-      },
-      // Estilos para o modal de parabéns
-      congratsModalView: {
-        width: "85%",
-        backgroundColor: "white",
-        borderRadius: 20,
-        padding: 25,
-        alignItems: "center",
-        shadowColor: "#000",
-        shadowOffset: {
-          width: 0,
-          height: 2,
-        },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-        elevation: 5,
-      },
-      congratsIconContainer: {
-        backgroundColor: "#E3F2FD",
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        justifyContent: "center",
-        alignItems: "center",
-        marginBottom: 20,
-      },
-      congratsTitle: {
-        fontSize: 24,
-        fontWeight: "bold",
-        color: "#2196F3",
-        marginBottom: 10,
-      },
-      congratsMessage: {
-        fontSize: 18,
-        fontWeight: "bold",
-        color: "#333",
-        marginBottom: 10,
-        textAlign: "center",
-      },
-      congratsSubtitle: {
-        fontSize: 16,
-        color: "#666",
-        marginBottom: 20,
-        textAlign: "center",
-      },
-      congratsButton: {
-        backgroundColor: "#2196F3",
-        borderRadius: 25,
-        paddingVertical: 12,
-        paddingHorizontal: 30,
-        elevation: 2,
-      },
-      congratsButtonText: {
-        color: "white",
-        fontWeight: "bold",
-        fontSize: 16,
-      },
-    })
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "#2196F3",
+            borderRadius: 25,
+            paddingVertical: 12,
+            paddingHorizontal: 20,
+            width: "100%",
+          },
+          addConsumptionButtonText: {
+            color: "white",
+            fontWeight: "bold",
+            marginRight: 5,
+          },
+          //modal de parabéns
+          congratsModalView: {
+            width: "85%",
+            backgroundColor: "white",
+            borderRadius: 20,
+            padding: 25,
+            alignItems: "center",
+            shadowColor: "#000",
+            shadowOffset: {
+              width: 0,
+              height: 2,
+            },
+            shadowOpacity: 0.25,
+            shadowRadius: 4,
+            elevation: 5,
+          },
+          congratsIconContainer: {
+            backgroundColor: "#E3F2FD",
+            width: 100,
+            height: 100,
+            borderRadius: 50,
+            justifyContent: "center",
+            alignItems: "center",
+            marginBottom: 20,
+          },
+          congratsTitle: {
+            fontSize: 24,
+            fontWeight: "bold",
+            color: "#2196F3",
+            marginBottom: 10,
+          },
+          congratsMessage: {
+            fontSize: 18,
+            fontWeight: "bold",
+            color: "#333",
+            marginBottom: 10,
+            textAlign: "center",
+          },
+          congratsSubtitle: {
+            fontSize: 16,
+            color: "#666",
+            marginBottom: 20,
+            textAlign: "center",
+          },
+          congratsButton: {
+            backgroundColor: "#2196F3",
+            borderRadius: 25,
+            paddingVertical: 12,
+            paddingHorizontal: 30,
+            elevation: 2,
+          },
+          congratsButtonText: {
+            color: "white",
+            fontWeight: "bold",
+            fontSize: 16,
+          },
+          deleteConsumptionButton: {
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "#FF5252",
+            borderRadius: 25,
+            paddingVertical: 12,
+            paddingHorizontal: 20,
+            width: "100%",
+            marginBottom: 10,
+          },
+          deleteConsumptionButtonText: {
+            color: "white",
+            fontWeight: "bold",
+            marginRight: 5,
+          },
+          confirmationModalView: {
+  backgroundColor: "white",
+  borderRadius: 20,
+  width: '80%',
+  padding: 20,
+  alignItems: "center",
+  shadowColor: "#000",
+  shadowOffset: {
+    width: 0,
+    height: 2
+  },
+  shadowOpacity: 0.25,
+  shadowRadius: 4,
+  elevation: 5
+},
+confirmationTitle: {
+  fontSize: 18,
+  fontWeight: "600",
+  color: "#333",
+  marginBottom: 10
+},
+confirmationMessage: {
+  fontSize: 16,
+  textAlign: "center",
+  color: "#555",
+  marginBottom: 20
+},
+confirmationButtonsContainer: {
+  flexDirection: "row",
+  width: "100%",
+  justifyContent: "space-between"
+},
+confirmCancelButton: {
+  flex: 1,
+  backgroundColor: "#e0e0e0",
+  borderRadius: 10,
+  padding: 12,
+  alignItems: "center",
+  marginRight: 10
+},
+confirmDeleteButton: {
+  flex: 1,
+  backgroundColor: "#ff4545",
+  borderRadius: 10,
+  padding: 12,
+  alignItems: "center",
+  marginLeft: 10,
+  flexDirection: "row",
+  justifyContent: "center"
+},
+confirmButtonText: {
+  color: "#333",
+  fontWeight: "500",
+  fontSize: 16
+},
+confirmDeleteButtonText: {
+  color: "white",
+  fontWeight: "500",
+  fontSize: 16,
+  marginRight: 5
+}
+})

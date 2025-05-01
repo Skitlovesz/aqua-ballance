@@ -1,51 +1,101 @@
-import { useState } from "react"
-import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity } from "react-native"
-import { Ionicons } from "@expo/vector-icons"
-import { useNavigation } from "@react-navigation/native"
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack"
-import React from "react"
+import { useState, useEffect } from "react" 
+import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity } from "react-native" 
+import { Ionicons } from "@expo/vector-icons" 
+import { useNavigation } from "@react-navigation/native" 
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack" 
+import React from "react" 
+import AsyncStorage from "@react-native-async-storage/async-storage"
 
+type UserData = {
+  weight: number;
+  height: number;
+  name: string;
+  waterIntake: number;
+}
 
 type RootStackParamList = {
   Profile: undefined
-  MainTabs: undefined
+  MainTabs: { waterIntake: number }
 }
 
 type ProfileScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, "Profile">
 
 export default function ProfileScreen() {
-  const [name, setName] = useState("José Maria dos Santos")
-  const [birthDate, setBirthDate] = useState("01/11/1990")
-  const [height, setHeight] = useState("168")
-  const [weight, setWeight] = useState("70.5")
-  const [gender, setGender] = useState("Mulher Cis")
-
+  const [height, setHeight] = useState("")
+  const [weight, setWeight] = useState("")
+  const [name, setName] = useState("Usuário")
+  
   const navigation = useNavigation<ProfileScreenNavigationProp>()
-
-  const handleCalculate = () => {
-    navigation.navigate("MainTabs")
+  
+  // Carregar dados salvos ao iniciar a tela
+  useEffect(() => {
+    loadUserData();
+  }, []);
+  
+  // Função para carregar os dados do usuário
+  const loadUserData = async () => {
+    try {
+      const jsonValue = await AsyncStorage.getItem('userData');
+      if (jsonValue !== null) {
+        const data = JSON.parse(jsonValue) as UserData;
+        setName(data.name || 'Usuário');
+        setWeight(data.weight ? data.weight.toString() : '');
+        setHeight(data.height ? data.height.toString() : '');
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados do usuário:', error);
+    }
+  };
+  
+  const calculateWaterIntake = async () => {
+    // Convertendo valores para números
+    const weightNum = parseFloat(weight)
+    const heightNum = parseFloat(height)
+    
+    if (isNaN(weightNum) || isNaN(heightNum) || weightNum <= 0 || heightNum <= 0) {
+      // Validações básicas
+      alert("Por favor, insira valores válidos para altura e peso")
+      return
+    }
+    
+    // Cálculo baseado no peso (30ml por kg) com ajuste baseado na altura
+    // Fator de ajuste: +10% a cada 10cm acima de 160cm, -10% a cada 10cm abaixo
+    const baseWaterIntake = weightNum * 30 // ml por dia baseado apenas no peso
+    
+    const heightFactor = 1 + ((heightNum - 160) / 100)
+    const finalWaterIntake = baseWaterIntake * heightFactor
+    
+    // Arredondando para ml inteiros
+    const waterIntakeRounded = Math.round(finalWaterIntake)
+    
+    // Salvar dados no AsyncStorage para persistência
+    try {
+      const userData: UserData = {
+        name: name,
+        weight: weightNum,
+        height: heightNum,
+        waterIntake: waterIntakeRounded
+      };
+      
+      await AsyncStorage.setItem('userData', JSON.stringify(userData));
+    } catch (error) {
+      console.error('Erro ao salvar dados:', error);
+    }
+    
+    // Navegar de volta passando o parâmetro calculado
+    navigation.navigate("MainTabs", { waterIntake: waterIntakeRounded })
   }
-
+  
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Meu Perfil</Text>
       </View>
-
+      
       <ScrollView style={styles.formContainer}>
         <View style={styles.formContent}>
-          <Text style={styles.formTitle}>Calcular minha meta diária</Text>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Nome</Text>
-            <TextInput style={styles.input} value={name} onChangeText={setName} />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Data de Nascimento</Text>
-            <TextInput style={styles.input} value={birthDate} onChangeText={setBirthDate} placeholder="DD/MM/AAAA" />
-          </View>
-
+          <Text style={styles.formTitle}>Calcular minha meta diária de água</Text>
+    
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Altura</Text>
             <View style={styles.inputWithUnit}>
@@ -54,11 +104,12 @@ export default function ProfileScreen() {
                 value={height}
                 onChangeText={setHeight}
                 keyboardType="numeric"
+                placeholder="Insira sua altura"
               />
               <Text style={styles.unitText}>cm</Text>
             </View>
           </View>
-
+          
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Peso</Text>
             <View style={styles.inputWithUnit}>
@@ -67,22 +118,16 @@ export default function ProfileScreen() {
                 value={weight}
                 onChangeText={setWeight}
                 keyboardType="numeric"
+                placeholder="Insira seu peso"
               />
               <Text style={styles.unitText}>kg</Text>
             </View>
           </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Gênero</Text>
-            <TouchableOpacity style={styles.selectInput}>
-              <Text>{gender}</Text>
-              <Ionicons name="chevron-down" size={20} color="#666" />
-            </TouchableOpacity>
-          </View>
-
-          <TouchableOpacity style={styles.calculateButton} onPress={handleCalculate}>
+          <TouchableOpacity style={styles.calculateButton} onPress={calculateWaterIntake}>
             <Text style={styles.calculateButtonText}>Calcular</Text>
-          </TouchableOpacity>
+         </TouchableOpacity>
+
         </View>
       </ScrollView>
     </View>
@@ -169,5 +214,8 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "bold",
   },
+  buttonIcon: {
+    marginLeft: 5,
+  }
 })
 
