@@ -88,22 +88,22 @@ export default function HistoryScreen() {
 
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Consumo por período de 24 horas</Text>
+            <Text style={styles.statLabel}>Consumo pela manhã</Text>
             <Text style={styles.statValue}>1.3L</Text>
           </View>
 
           <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Horários de Pico de Consumo</Text>
+            <Text style={styles.statLabel}>Consumo pela tarde</Text>
             <Text style={styles.statValue}>14h</Text>
           </View>
 
           <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Média semanal de água ingerida</Text>
+            <Text style={styles.statLabel}>Consumo pela noite</Text>
             <Text style={styles.statValue}>1.2L</Text>
           </View>
 
           <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Progresso em Relação à Meta Diária/Semanal/Mensal</Text>
+            <Text style={styles.statLabel}>Consumo Total</Text>
             <Text style={styles.statValue}>65%</Text>
           </View>
         </View>
