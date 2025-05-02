@@ -42,7 +42,6 @@ type RemindersModalProps = {
 
 const DEFAULT_REMINDER_IDS = ["reminder-1", "reminder-2", "reminder-3", "reminder-4"];
 
-// Função melhorada para solicitar permissões
 const requestNotificationPermissions = async () => {
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('water-reminders', {
@@ -73,7 +72,7 @@ const requestNotificationPermissions = async () => {
   return true;
 };
 
-// Função de agendamento com tratamento de erros melhorado
+// Função de agendamento
 const scheduleReminderNotification = async (reminder: ReminderItem) => {
   if (!reminder.enabled) return;
 
@@ -115,7 +114,7 @@ const scheduleReminderNotification = async (reminder: ReminderItem) => {
   }
 };
 
-// Componente para o Modal de Lembretes
+// Modal de Lembretes
 const RemindersModal = ({ visible, onClose }: RemindersModalProps) => {
   const [reminders, setReminders] = useState<ReminderItem[]>([
     { id: "reminder-1", time: "06:00", text: "Todos os dias", enabled: true },
