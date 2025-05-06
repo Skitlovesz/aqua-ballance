@@ -7,19 +7,54 @@ import React from "react";
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 
+// Configuração correta do handler de notificações
 Notifications.setNotificationHandler({
-    handleNotification: async (notification) => ({
-      shouldShowBanner: true,  // Para notificações no topo da tela
-      shouldShowList: true,    // Para notificações na lista/centro de notificações
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-    }),
-  });
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    priority: Notifications.AndroidNotificationPriority.HIGH,
+  }),
+});
 
-// Registrar task para background no Android
-if (Platform.OS === 'android') {
-  Notifications.registerTaskAsync('BACKGROUND_NOTIFICATION_HANDLER');
-}
+// Função para registrar token de notificações
+const registerForPushNotificationsAsync = async () => {
+  let token;
+
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('water-reminders', {
+      name: 'Lembretes para beber água',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#2196F3',
+      sound: 'default',
+    });
+  }
+
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+
+  if (finalStatus !== 'granted') {
+    console.log('Permissão de notificação não concedida');
+    return null;
+  }
+
+  // Não exibir alerta se a permissão não for concedida
+  // Removido o Alert para não mostrar mensagem na inicialização
+
+  token = (
+    await Notifications.getExpoPushTokenAsync({
+      projectId: 'your-project-id',
+    })
+  ).data;
+
+  return token;
+};
 
 type RootStackParamList = {
   Profile: undefined;
@@ -46,7 +81,7 @@ const requestNotificationPermissions = async () => {
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('water-reminders', {
       name: 'Lembretes para beber água',
-      importance: Notifications.AndroidImportance.HIGH,
+      importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#2196F3',
       sound: 'default',
@@ -62,21 +97,20 @@ const requestNotificationPermissions = async () => {
   }
 
   if (finalStatus !== 'granted') {
-    Alert.alert(
-      "Permissão necessária",
-      "As notificações não funcionarão sem permissão. Você pode ativar nas configurações do aplicativo."
-    );
+    // Não exibir alerta na inicialização
+    console.log("Permissão para notificações não concedida");
     return false;
   }
 
   return true;
 };
 
-// Função de agendamento
+// Função de agendamento corrigida
 const scheduleReminderNotification = async (reminder: ReminderItem) => {
   if (!reminder.enabled) return;
 
   try {
+    // Cancela notificação existente com este ID
     await Notifications.cancelScheduledNotificationAsync(reminder.id);
 
     const [hours, minutes] = reminder.time.split(':').map(num => parseInt(num, 10));
@@ -84,43 +118,63 @@ const scheduleReminderNotification = async (reminder: ReminderItem) => {
     const scheduledTime = new Date();
     
     scheduledTime.setHours(hours, minutes, 0, 0);
+    
+    // Se o horário já passou hoje, agendar para amanhã
     if (scheduledTime <= now) {
       scheduledTime.setDate(scheduledTime.getDate() + 1);
     }
 
-    const delay = Math.floor((scheduledTime.getTime() - now.getTime()) / 1000);
+    // Calcular o delay em segundos até o horário agendado
+    const delay = Math.max(1, Math.floor((scheduledTime.getTime() - now.getTime()) / 1000));
+    
     const isCustomReminder = !DEFAULT_REMINDER_IDS.includes(reminder.id);
+    const isRepeating = reminder.text === "Todos os dias";
 
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: "Hora de beber água",
-        body: isCustomReminder 
-          ? `Seu lembrete das ${reminder.time} está ativo!` 
-          : `Seu lembrete das ${reminder.time}`,
-        sound: true,
-        data: { reminderId: reminder.id },
-      },
-      trigger: {
-        seconds: delay,
-        repeats: reminder.text === "Todos os dias",
-        channelId: 'water-reminders',
-      },
-    });
+    const notificationContent = {
+      title: "Hora de beber água",
+      body: isCustomReminder 
+        ? `Seu lembrete das ${reminder.time} está ativo!` 
+        : `Seu lembrete das ${reminder.time}`,
+      sound: true,
+      data: { reminderId: reminder.id },
+      categoryIdentifier: 'water-reminders',
+    };
 
-    console.log(`Notificação agendada para: ${scheduledTime.toLocaleString()}`);
+    let identifier;
+    
+    if (isRepeating) {
+      // Para notificações diárias repetitivas
+      identifier = await Notifications.scheduleNotificationAsync({
+        content: notificationContent,
+        trigger: {
+          hour: hours,
+          minute: minutes,
+          repeats: true,
+        },
+      });
+    } else {
+      // Para notificações únicas
+      identifier = await Notifications.scheduleNotificationAsync({
+        content: notificationContent,
+        trigger: {
+          seconds: delay,
+          repeats: false,
+        },
+      });
+    }
+
+    console.log(`Notificação agendada com ID: ${identifier} para: ${scheduledTime.toLocaleString()}`);
+    return identifier;
   } catch (error) {
     console.error("Erro ao agendar notificação:", error);
-    Alert.alert("Erro", "Não foi possível agendar o lembrete. Tente novamente.");
+    return null;
   }
 };
 
 // Modal de Lembretes
 const RemindersModal = ({ visible, onClose }: RemindersModalProps) => {
   const [reminders, setReminders] = useState<ReminderItem[]>([
-    { id: "reminder-1", time: "06:00", text: "Todos os dias", enabled: true },
-    { id: "reminder-2", time: "07:30", text: "Todos os dias", enabled: true },
-    { id: "reminder-3", time: "09:00", text: "Todos os dias", enabled: true },
-    { id: "reminder-4", time: "11:00", text: "Todos os dias", enabled: false },
+    // Inicializando com array vazio, os lembretes serão carregados do armazenamento
   ]);
   
   const [addAlarmModalVisible, setAddAlarmModalVisible] = useState(false);
@@ -130,12 +184,37 @@ const RemindersModal = ({ visible, onClose }: RemindersModalProps) => {
   const [repeatModalVisible, setRepeatModalVisible] = useState(false);
 
   useEffect(() => {
+    const loadStoredReminders = async () => {
+      // Aqui você pode adicionar lógica para carregar lembretes salvos
+      // Por enquanto usamos um array vazio para evitar notificações na inicialização
+      // Se quiser adicionar lembretes padrão, descomente abaixo:
+      /*
+      setReminders([
+        { id: "reminder-1", time: "06:00", text: "Todos os dias", enabled: true },
+        { id: "reminder-2", time: "07:30", text: "Todos os dias", enabled: true },
+        { id: "reminder-3", time: "09:00", text: "Todos os dias", enabled: true },
+        { id: "reminder-4", time: "11:00", text: "Todos os dias", enabled: false },
+      ]);
+      */
+    };
+    
+    loadStoredReminders();
+  }, []);
+
+  // Efeito para reagendar notificações quando os lembretes mudarem
+  useEffect(() => {
     const setupNotifications = async () => {
       const permissionGranted = await requestNotificationPermissions();
       
-      if (permissionGranted) {
-        await Notifications.cancelAllScheduledNotificationsAsync();
+      if (permissionGranted && reminders.length > 0) {
+        console.log("Reconfigurando notificações agendadas");
         
+        // Apenas cancela notificações que pertencem aos nossos lembretes
+        for (const reminder of reminders) {
+          await Notifications.cancelScheduledNotificationAsync(reminder.id);
+        }
+        
+        // Reagenda as notificações ativas
         for (const reminder of reminders) {
           if (reminder.enabled) {
             await scheduleReminderNotification(reminder);
@@ -144,53 +223,90 @@ const RemindersModal = ({ visible, onClose }: RemindersModalProps) => {
       }
     };
     
-    setupNotifications();
-  }, [reminders]);
+    // Adicione um pequeno atraso para evitar configurar notificações na inicialização
+    // se o modal estiver visível (quando o usuário abriu manualmente)
+    if (visible) {
+      setupNotifications();
+    }
+  }, [reminders, visible]);
 
-  const toggleReminder = (index: number) => {
+  const toggleReminder = async (index: number) => {
     const updatedReminders = [...reminders];
     updatedReminders[index].enabled = !updatedReminders[index].enabled;
+    
+    // Se o lembrete foi ativado, agenda a notificação
+    if (updatedReminders[index].enabled) {
+      await scheduleReminderNotification(updatedReminders[index]);
+    } else {
+      // Se foi desativado, cancela a notificação
+      await Notifications.cancelScheduledNotificationAsync(updatedReminders[index].id);
+    }
+    
     setReminders(updatedReminders);
   };
   
-  const addNewReminder = () => {
+  const addNewReminder = async () => {
     if (!selectedHour || !selectedMinute) {
       Alert.alert("Erro", "Selecione um horário válido");
       return;
     }
 
+    const formattedHour = selectedHour.padStart(2, '0');
+    const formattedMinute = selectedMinute.padStart(2, '0');
+    const formattedTime = `${formattedHour}:${formattedMinute}`;
+    
+    // Verificar se já existe um lembrete com este horário
+    const existingReminder = reminders.find(r => r.time === formattedTime);
+    if (existingReminder) {
+      Alert.alert("Horário já existe", "Você já tem um lembrete configurado para este horário.");
+      return;
+    }
+
     const newReminder: ReminderItem = {
-      id: `reminder-${Date.now()}`,
-      time: `${selectedHour.padStart(2, '0')}:${selectedMinute.padStart(2, '0')}`,
+      id: `reminder-custom-${Date.now()}`,
+      time: formattedTime,
       text: repeatOption,
       enabled: true
     };
     
-    setReminders([...reminders, newReminder]);
+    const updatedReminders = [...reminders, newReminder];
+    setReminders(updatedReminders);
+    
+    // Agende a notificação para o novo lembrete
+    await scheduleReminderNotification(newReminder);
+    
     setAddAlarmModalVisible(false);
   };
   
   const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
   const minutes = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
   
-  const testReminder = (reminder: ReminderItem) => {
+  const testReminder = async (reminder: ReminderItem) => {
     const isCustomReminder = !DEFAULT_REMINDER_IDS.includes(reminder.id);
     
-    Notifications.scheduleNotificationAsync({
-      content: {
-        title: "Hora de beber água",
-        body: isCustomReminder 
-          ? `Teste do lembrete das ${reminder.time} (está ativo!)` 
-          : `Teste do lembrete das ${reminder.time}`,
-        sound: true,
-      },
-      trigger: null,
-    });
-    
-    Alert.alert(
-      "Teste de Lembrete",
-      `Um lembrete de teste para o horário ${reminder.time} foi enviado!`
-    );
+    try {
+      const notificationId = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "Teste: Hora de beber água",
+          body: isCustomReminder 
+            ? `Teste do lembrete das ${reminder.time} (está ativo!)` 
+            : `Teste do lembrete das ${reminder.time}`,
+          sound: true,
+          priority: Notifications.AndroidNotificationPriority.MAX,
+        },
+        trigger: null, // Isso faz a notificação disparar imediatamente
+      });
+      
+      console.log(`Notificação de teste enviada com ID: ${notificationId}`);
+      
+      Alert.alert(
+        "Teste de Lembrete",
+        `Um lembrete de teste para o horário ${reminder.time} foi enviado!`
+      );
+    } catch (error) {
+      console.error("Erro ao enviar notificação de teste:", error);
+      Alert.alert("Erro", "Não foi possível enviar a notificação de teste. Verifique as permissões.");
+    }
   };
   
   const renderTimeOptions = (data: string[], selected: string, onSelect: (value: string) => void) => {
@@ -244,11 +360,13 @@ const RemindersModal = ({ visible, onClose }: RemindersModalProps) => {
               <View key={index} style={styles.reminderItem}>
                 <TouchableOpacity 
                   style={styles.deleteButton}
-                  onPress={() => {
+                  onPress={async () => {
+                    // Cancela a notificação antes de remover o lembrete
+                    await Notifications.cancelScheduledNotificationAsync(reminder.id);
+                    
                     const updatedReminders = [...reminders];
                     updatedReminders.splice(index, 1);
                     setReminders(updatedReminders);
-                    Notifications.cancelScheduledNotificationAsync(reminder.id);
                   }}
                 >
                   <Ionicons name="trash-outline" size={18} color="#FF6B6B" />
@@ -400,24 +518,54 @@ export default function SettingsScreen() {
   const navigation = useNavigation<SettingsScreenNavigationProp>();
   
   useEffect(() => {
+    // Configurar ouvintes de notificação em silêncio (sem alertas)
     const notificationReceivedSubscription = Notifications.addNotificationReceivedListener(notification => {
       console.log('Notificação recebida:', notification);
+      // Não fazer nada aqui para evitar alertas na inicialização
     });
 
     const notificationResponseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
       console.log('Usuário interagiu com a notificação:', response);
+      // Você pode adicionar lógica aqui para lidar com a interação do usuário
     });
 
+    // Verificar permissões silenciosamente, sem mostrar alertas
     const checkPermissions = async () => {
-      await requestNotificationPermissions();
+      const permissionGranted = await requestNotificationPermissions();
+      if (!permissionGranted) {
+        setNotificationsEnabled(false);
+        setRemindersEnabled(false);
+        setAchievementsEnabled(false);
+      }
     };
-    checkPermissions();
+    
+    // Registrar para notificações push silenciosamente
+    const setupNotifications = async () => {
+      await registerForPushNotificationsAsync();
+      await checkPermissions();
+    };
+    
+    setupNotifications();
 
+    // Limpar assinaturas ao desmontar
     return () => {
       notificationReceivedSubscription.remove();
       notificationResponseSubscription.remove();
     };
   }, []);
+
+  // Modificado: Não exibir automaticamente o modal na inicialização
+  useEffect(() => {
+    const updateNotificationSettings = async () => {
+      if (!notificationsEnabled) {
+        // Cancelar todas as notificações quando desativadas
+        await Notifications.cancelAllScheduledNotificationsAsync();
+      }
+      // Removido o código que abria automaticamente o modal
+    };
+    
+    updateNotificationSettings();
+  }, [notificationsEnabled, remindersEnabled]);
 
   const navigateToProfile = () => {
     navigation.navigate("Profile");
@@ -433,7 +581,7 @@ export default function SettingsScreen() {
     }
   };
   
-  const confirmDisableNotifications = () => {
+  const confirmDisableNotifications = async () => {
     setPreviousRemindersState(remindersEnabled);
     setPreviousAchievementsState(achievementsEnabled);
     
@@ -441,7 +589,13 @@ export default function SettingsScreen() {
     setRemindersEnabled(false);
     setAchievementsEnabled(false);
     
-    Notifications.cancelAllScheduledNotificationsAsync();
+    try {
+      const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
+      console.log(`Cancelando ${scheduledNotifications.length} notificações agendadas`);
+      await Notifications.cancelAllScheduledNotificationsAsync();
+    } catch (error) {
+      console.error("Erro ao cancelar notificações:", error);
+    }
     
     setConfirmModalVisible(false);
   };
