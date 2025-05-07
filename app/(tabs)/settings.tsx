@@ -1,11 +1,9 @@
-import { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Switch, ScrollView, Modal, Pressable, Alert, Platform } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Switch, ScrollView, Modal, Alert, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import React from "react";
 import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
 
 // Configuração correta do handler de notificações
 Notifications.setNotificationHandler({
@@ -125,38 +123,47 @@ const scheduleReminderNotification = async (reminder: ReminderItem) => {
     }
 
     // Calcular o delay em segundos até o horário agendado
-    const delay = Math.max(1, Math.floor((scheduledTime.getTime() - now.getTime()) / 1000));
+    const delay = Math.max(10, Math.floor((scheduledTime.getTime() - now.getTime()) / 1000));
     
     const isCustomReminder = !DEFAULT_REMINDER_IDS.includes(reminder.id);
     const isRepeating = reminder.text === "Todos os dias";
 
     const notificationContent = {
       title: "Hora de beber água",
-      body: isCustomReminder 
-        ? `Seu lembrete das ${reminder.time} está ativo!` 
-        : `Seu lembrete das ${reminder.time}`,
+      body: "Lembre-se de se hidratar!", // Mensagem genérica para o lembrete atual
       sound: true,
-      data: { reminderId: reminder.id },
+      data: { reminderId: reminder.id, isWaterReminder: true, isSetupNotification: true },
       categoryIdentifier: 'water-reminders',
     };
 
     let identifier;
     
+
     if (isRepeating) {
-      // Para notificações diárias repetitivas
+      // Para notificações diárias repetitivas - certifique-se de que o objeto trigger está correto
+      // Calculate seconds until first occurrence
+      const now = new Date();
+      const scheduledTime = new Date();
+      scheduledTime.setHours(hours, minutes, 0, 0);
+      if (scheduledTime <= now) {
+        scheduledTime.setDate(scheduledTime.getDate() + 1);
+      }
+      const secondsUntilFirstTrigger = Math.floor((scheduledTime.getTime() - now.getTime()) / 1000);
+
+      console.log(`Scheduled time: ${scheduledTime}`);
       identifier = await Notifications.scheduleNotificationAsync({
         content: notificationContent,
         trigger: {
-          hour: hours,
-          minute: minutes,
-          repeats: true,
+          date: scheduledTime,
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
         },
       });
     } else {
-      // Para notificações únicas
+      // Para notificações únicas - certifique-se de que o delay é significativo
       identifier = await Notifications.scheduleNotificationAsync({
         content: notificationContent,
         trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
           seconds: delay,
           repeats: false,
         },
@@ -164,6 +171,13 @@ const scheduleReminderNotification = async (reminder: ReminderItem) => {
     }
 
     console.log(`Notificação agendada com ID: ${identifier} para: ${scheduledTime.toLocaleString()}`);
+    
+    // Opcionalmente, você pode mostrar um alerta em vez de uma notificação
+    Alert.alert(
+      "Lembrete Configurado",
+      `Seu lembrete para ${reminder.time} foi configurado com sucesso!`
+    );
+    
     return identifier;
   } catch (error) {
     console.error("Erro ao agendar notificação:", error);
@@ -176,7 +190,8 @@ const RemindersModal = ({ visible, onClose }: RemindersModalProps) => {
   const [reminders, setReminders] = useState<ReminderItem[]>([
     // Inicializando com array vazio, os lembretes serão carregados do armazenamento
   ]);
-  
+  const [justAdded, setJustAdded] = useState(false);
+
   const [addAlarmModalVisible, setAddAlarmModalVisible] = useState(false);
   const [selectedHour, setSelectedHour] = useState("19");
   const [selectedMinute, setSelectedMinute] = useState("30");
@@ -204,6 +219,8 @@ const RemindersModal = ({ visible, onClose }: RemindersModalProps) => {
   // Efeito para reagendar notificações quando os lembretes mudarem
   useEffect(() => {
     const setupNotifications = async () => {
+      if (justAdded) return;
+
       const permissionGranted = await requestNotificationPermissions();
       
       if (permissionGranted && reminders.length > 0) {
@@ -228,7 +245,7 @@ const RemindersModal = ({ visible, onClose }: RemindersModalProps) => {
     if (visible) {
       setupNotifications();
     }
-  }, [reminders, visible]);
+  }, [reminders, visible, justAdded]);
 
   const toggleReminder = async (index: number) => {
     const updatedReminders = [...reminders];
@@ -274,8 +291,13 @@ const RemindersModal = ({ visible, onClose }: RemindersModalProps) => {
     
     // Agende a notificação para o novo lembrete
     await scheduleReminderNotification(newReminder);
+    setJustAdded(true); // Marca que acabou de adicionar
     
     setAddAlarmModalVisible(false);
+
+    setTimeout(() => {
+      setJustAdded(false);
+    }, 1000);
   };
   
   const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
@@ -519,11 +541,13 @@ export default function SettingsScreen() {
   
   useEffect(() => {
     // Configurar ouvintes de notificação em silêncio (sem alertas)
+    // Configurar ouvintes de notificação em silêncio (sem alertas)
     const notificationReceivedSubscription = Notifications.addNotificationReceivedListener(notification => {
-      console.log('Notificação recebida:', notification);
-      // Não fazer nada aqui para evitar alertas na inicialização
+      
+      
+        console.log('Notificação recebida:', notification);
+      
     });
-
     const notificationResponseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
       console.log('Usuário interagiu com a notificação:', response);
       // Você pode adicionar lógica aqui para lidar com a interação do usuário
