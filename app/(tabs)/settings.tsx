@@ -455,7 +455,7 @@ const RemindersModal = ({ visible, onClose }: RemindersModalProps) => {
                 <Text style={styles.alarmOptionLabel}>Toque</Text>
                 <View style={styles.alarmOptionValue}>
                   <Text style={styles.alarmOptionValueText}>Toque Padrão</Text>
-                  <Ionicons name="chevron-forward" size={20} color="#999" />
+                  {/* <Ionicons name="chevron-forward" size={20} color="#999" /> */}
                 </View>
               </TouchableOpacity>
               
