@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import * as Notifications from 'expo-notifications';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Configuração correta do handler de notificações
 Notifications.setNotificationHandler({
@@ -536,17 +537,14 @@ export default function SettingsScreen() {
   
   const [previousRemindersState, setPreviousRemindersState] = useState(true);
   const [previousAchievementsState, setPreviousAchievementsState] = useState(true);
+  const [userName, setUserName] = useState("Usuário");
 
   const navigation = useNavigation<SettingsScreenNavigationProp>();
   
   useEffect(() => {
     // Configurar ouvintes de notificação em silêncio (sem alertas)
-    // Configurar ouvintes de notificação em silêncio (sem alertas)
     const notificationReceivedSubscription = Notifications.addNotificationReceivedListener(notification => {
-      
-      
-        console.log('Notificação recebida:', notification);
-      
+      console.log('Notificação recebida:', notification);
     });
     const notificationResponseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
       console.log('Usuário interagiu com a notificação:', response);
@@ -576,6 +574,22 @@ export default function SettingsScreen() {
       notificationReceivedSubscription.remove();
       notificationResponseSubscription.remove();
     };
+  }, []);
+
+  useEffect(() => {
+    const loadUserName = async () => {
+      try {
+        const storedName = await AsyncStorage.getItem("userName");
+        console.log("Nome carregado do AsyncStorage:", storedName); // Log para depuração
+        if (storedName) {
+          setUserName(storedName);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar o nome do usuário:", error);
+      }
+    };
+
+    loadUserName();
   }, []);
 
   // Modificado: Não exibir automaticamente o modal na inicialização
@@ -639,7 +653,7 @@ export default function SettingsScreen() {
             <View style={styles.profileInfo}>
               <Ionicons name="person" size={20} color="#2196F3" style={styles.profileIcon} />
               <View>
-                <Text style={styles.profileName}>USUARIO_XYX</Text>
+                <Text style={styles.profileName}>{userName}</Text>
                 <Text style={styles.profileAge}>Clique aqui para ajustar sua nova meta</Text>
               </View>
             </View>

@@ -39,6 +39,76 @@
 // type MainTabsRouteProp = RouteProp<RootStackParamList, "MainTabs">
 // type MainTabsNavigationProp = NativeStackNavigationProp<RootStackParamList, "MainTabs">
 
+// // Tipos para nossas conquistas e desafios com a tipagem correta para ícones
+// type Achievement = {
+//   id: string
+//   title: string
+//   completed: boolean
+//   icon: string
+//   description: string
+// }
+
+// type Challenge = {
+//   id: string
+//   title: string
+//   completed: boolean
+//   achievementId: string
+//   icon: string
+//   description: string
+// }
+
+// // Dados iniciais para conquistas e desafios
+// const initialAchievements: Achievement[] = [
+//   {
+//     id: "achievement_1",
+//     title: "Hidratação Consistente",
+//     completed: false,
+//     icon: "trophy",
+//     description: "Beba água por 7 dias seguidos.",
+//   },
+//   {
+//     id: "achievement_2",
+//     title: "Meta Diária Alcançada",
+//     completed: false,
+//     icon: "ribbon",
+//     description: "Complete sua meta diária de consumo de água.",
+//   },
+//   {
+//     id: "achievement_3",
+//     title: "Hidratação Completa",
+//     completed: false,
+//     icon: "water",
+//     description: "Beba 2 litros de água em um único dia.",
+//   },
+// ]
+
+// const initialChallenges: Challenge[] = [
+//   {
+//     id: "challenge_1",
+//     title: "Beba água por 7 dias consecutivos",
+//     completed: false,
+//     achievementId: "achievement_1",
+//     icon: "time-outline",
+//     description: "Mantenha o consumo de água por uma semana inteira.",
+//   },
+//   {
+//     id: "challenge_2",
+//     title: "Complete sua meta diária",
+//     completed: false,
+//     achievementId: "achievement_2",
+//     icon: "time-outline",
+//     description: "Atinja sua meta diária de consumo de água.",
+//   },
+//   {
+//     id: "challenge_3",
+//     title: "Beba 2 litros hoje",
+//     completed: false,
+//     achievementId: "achievement_3",
+//     icon: "time-outline",
+//     description: "Consuma pelo menos 2 litros de água hoje.",
+//   },
+// ]
+
 // export default function HomeScreen() {
 //   // Navegação e rota
 //   const route = useRoute<MainTabsRouteProp>()
@@ -154,6 +224,18 @@
 
 //   // Efeito para carregar os dados do usuário e calcular a meta
 //   useEffect(() => {
+//     const loadUserName = async () => {
+//       try {
+//         const storedName = await AsyncStorage.getItem("userName")
+//         console.log("Nome carregado do AsyncStorage:", storedName) // Log para depuração
+//         if (storedName) {
+//           setUserData((prev) => ({ ...prev, name: storedName }))
+//         }
+//       } catch (error) {
+//         console.error("Erro ao carregar o nome do usuário:", error)
+//       }
+//     }
+
 //     const initializeData = async () => {
 //       await loadLastResetTimestamp()
 
@@ -192,9 +274,54 @@
 //       }
 //     }
 
+//     loadUserName()
 //     initializeData()
 //     loadHistoryItems()
+//     checkDailyReset() // Verificar se precisa resetar os dados diários
+
+//     // Inicializar conquistas e desafios se não existirem
+//     initializeAchievementsAndChallenges()
 //   }, [route.params])
+
+//   // Inicializar conquistas e desafios se não existirem
+//   const initializeAchievementsAndChallenges = async () => {
+//     try {
+//       const savedAchievements = await AsyncStorage.getItem("achievements")
+//       const savedChallenges = await AsyncStorage.getItem("challenges")
+
+//       if (!savedAchievements) {
+//         await AsyncStorage.setItem("achievements", JSON.stringify(initialAchievements))
+//         console.log("Conquistas inicializadas com sucesso")
+//       }
+
+//       if (!savedChallenges) {
+//         await AsyncStorage.setItem("challenges", JSON.stringify(initialChallenges))
+//         console.log("Desafios inicializados com sucesso")
+//       }
+//     } catch (error) {
+//       console.error("Erro ao inicializar conquistas e desafios:", error)
+//     }
+//   }
+
+//   // Função para verificar se é um novo dia e resetar os dados se necessário
+//   const checkDailyReset = async () => {
+//     try {
+//       const lastResetDate = await AsyncStorage.getItem("lastResetDate")
+//       const today = new Date().toDateString()
+
+//       if (lastResetDate !== today) {
+//         console.log("Novo dia detectado, resetando dados diários e conquistas")
+
+//         // É um novo dia, resetar o contador e as conquistas
+//         await resetWaterConsumed(true) // true indica que é um reset diário
+
+//         // Salvar a data atual como último reset
+//         await AsyncStorage.setItem("lastResetDate", today)
+//       }
+//     } catch (error) {
+//       console.error("Erro ao verificar reset diário:", error)
+//     }
+//   }
 
 //   // Carregar itens do histórico do AsyncStorage
 //   const loadHistoryItems = async () => {
@@ -216,18 +343,149 @@
 //     }
 //   }
 
-//   // Adicionar logs para depura��ão no método saveHistoryItems
+//   // Adicionar logs para depuração no método saveHistoryItems
 //   const saveHistoryItems = async (items: HistoryItem[]) => {
 //     try {
 //       await AsyncStorage.setItem("historyItems", JSON.stringify(items))
 //       console.log(`Salvos ${items.length} itens no histórico:`, JSON.stringify(items))
+
+//       // Atualizar dados de conquistas
+//       updateAchievements(items)
 //     } catch (error) {
 //       console.error("Erro ao salvar histórico:", error)
 //     }
 //   }
 
-//   // Modificar a função resetWaterConsumed para marcar itens como ocultos
-//   const resetWaterConsumed = async () => {
+//   // Função para atualizar conquistas com base no consumo de água
+//   const updateAchievements = async (items: HistoryItem[]) => {
+//     try {
+//       // Calcular dados para conquistas
+//       const today = getCurrentDate()
+//       const todayItems = items.filter((item) => item.date === today && !item.hidden)
+//       const todayTotal = calculateTotalWaterConsumed(todayItems)
+
+//       console.log(`Consumo total de hoje: ${todayTotal}L, Meta: ${recommendedWaterIntakeLiters}L`)
+
+//       // Verificar dias consecutivos
+//       let consecutiveDays = 0
+//       const lastConsecutiveDaysStr = await AsyncStorage.getItem("consecutiveDays")
+//       if (lastConsecutiveDaysStr) {
+//         consecutiveDays = Number.parseInt(lastConsecutiveDaysStr)
+//       }
+
+//       // Se atingiu a meta hoje, incrementar dias consecutivos
+//       if (todayTotal >= recommendedWaterIntakeLiters) {
+//         consecutiveDays += 1
+//         await AsyncStorage.setItem("consecutiveDays", consecutiveDays.toString())
+//         console.log(`Meta atingida! Dias consecutivos: ${consecutiveDays}`)
+//       }
+
+//       // Salvar dados de consumo para o sistema de conquistas
+//       const waterConsumptionData = {
+//         dailyConsumption: todayTotal,
+//         dailyGoal: recommendedWaterIntakeLiters,
+//         consecutiveDays: consecutiveDays,
+//         lastUpdated: today,
+//       }
+
+//       await AsyncStorage.setItem("waterConsumption", JSON.stringify(waterConsumptionData))
+
+//       // Atualizar conquistas e desafios diretamente
+//       await updateAchievementsAndChallenges(todayTotal, recommendedWaterIntakeLiters, consecutiveDays)
+//     } catch (error) {
+//       console.error("Erro ao atualizar conquistas:", error)
+//     }
+//   }
+
+//   // Nova função para atualizar diretamente as conquistas e desafios
+//   const updateAchievementsAndChallenges = async (
+//     todayConsumption: number,
+//     dailyGoal: number,
+//     consecutiveDays: number,
+//   ) => {
+//     try {
+//       // Carregar conquistas e desafios atuais
+//       const savedAchievementsStr = await AsyncStorage.getItem("achievements")
+//       const savedChallengesStr = await AsyncStorage.getItem("challenges")
+
+//       if (!savedAchievementsStr || !savedChallengesStr) {
+//         console.error("Conquistas ou desafios não encontrados no AsyncStorage")
+//         return
+//       }
+
+//       const achievements: Achievement[] = JSON.parse(savedAchievementsStr)
+//       const challenges: Challenge[] = JSON.parse(savedChallengesStr)
+
+//       let achievementsUpdated = false
+//       let challengesUpdated = false
+
+//       // Verificar e atualizar desafios
+//       for (let i = 0; i < challenges.length; i++) {
+//         const challenge = challenges[i]
+
+//         // Desafio de meta diária
+//         if (challenge.id === "challenge_2" && !challenge.completed && todayConsumption >= dailyGoal) {
+//           challenge.completed = true
+//           challengesUpdated = true
+//           console.log("Desafio de meta diária completado!")
+
+//           // Atualizar conquista relacionada
+//           const relatedAchievement = achievements.find((a) => a.id === challenge.achievementId)
+//           if (relatedAchievement && !relatedAchievement.completed) {
+//             relatedAchievement.completed = true
+//             achievementsUpdated = true
+//             console.log("Conquista de meta diária desbloqueada!")
+//           }
+//         }
+
+//         // Desafio de 2 litros
+//         if (challenge.id === "challenge_3" && !challenge.completed && todayConsumption >= 2) {
+//           challenge.completed = true
+//           challengesUpdated = true
+//           console.log("Desafio de 2 litros completado!")
+
+//           // Atualizar conquista relacionada
+//           const relatedAchievement = achievements.find((a) => a.id === challenge.achievementId)
+//           if (relatedAchievement && !relatedAchievement.completed) {
+//             relatedAchievement.completed = true
+//             achievementsUpdated = true
+//             console.log("Conquista de 2 litros desbloqueada!")
+//           }
+//         }
+
+//         // Desafio de 7 dias consecutivos
+//         if (challenge.id === "challenge_1" && !challenge.completed && consecutiveDays >= 7) {
+//           challenge.completed = true
+//           challengesUpdated = true
+//           console.log("Desafio de 7 dias consecutivos completado!")
+
+//           // Atualizar conquista relacionada
+//           const relatedAchievement = achievements.find((a) => a.id === challenge.achievementId)
+//           if (relatedAchievement && !relatedAchievement.completed) {
+//             relatedAchievement.completed = true
+//             achievementsUpdated = true
+//             console.log("Conquista de 7 dias consecutivos desbloqueada!")
+//           }
+//         }
+//       }
+
+//       // Salvar conquistas e desafios atualizados
+//       if (achievementsUpdated) {
+//         await AsyncStorage.setItem("achievements", JSON.stringify(achievements))
+//         console.log("Conquistas atualizadas e salvas com sucesso")
+//       }
+
+//       if (challengesUpdated) {
+//         await AsyncStorage.setItem("challenges", JSON.stringify(challenges))
+//         console.log("Desafios atualizados e salvos com sucesso")
+//       }
+//     } catch (error) {
+//       console.error("Erro ao atualizar conquistas e desafios:", error)
+//     }
+//   }
+
+//   // Modificar a função resetWaterConsumed para aceitar um parâmetro que indica se é um reset diário
+//   const resetWaterConsumed = async (isDailyReset = false) => {
 //     // Zerar o total de água consumida
 //     setTotalWaterConsumed(0)
 //     // Resetar o estado de celebração
@@ -241,11 +499,81 @@
 //     try {
 //       await AsyncStorage.setItem("lastResetTimestamp", resetTimestamp.toString())
 //       console.log("Timestamp de reinício salvo:", resetTimestamp)
+
+//       // Marcar todos os itens do dia atual como ocultos
+//       const today = getCurrentDate()
+//       const updatedItems = historyItems.map((item) => {
+//         if (item.date === today) {
+//           return { ...item, hidden: true }
+//         }
+//         return item
+//       })
+
+//       setHistoryItems(updatedItems)
+//       await saveHistoryItems(updatedItems)
+
+//       // Se for um reset diário, resetar também as conquistas
+//       if (isDailyReset) {
+//         // Resetar dias consecutivos apenas se for um reset diário
+//         await AsyncStorage.setItem("consecutiveDays", "0")
+
+//         // Resetar conquistas e desafios
+//         await resetAchievements()
+//       }
 //     } catch (error) {
 //       console.error("Erro ao salvar timestamp de reinício:", error)
 //     }
 
 //     console.log("Contador de água consumida zerado (apenas para a tela principal)")
+//   }
+
+//   // Função para resetar conquistas e desafios (chamada apenas no reset diário)
+//   const resetAchievements = async () => {
+//     try {
+//       // Carregar conquistas e desafios atuais
+//       const savedAchievementsStr = await AsyncStorage.getItem("achievements")
+//       const savedChallengesStr = await AsyncStorage.getItem("challenges")
+
+//       let achievements = initialAchievements
+//       let challenges = initialChallenges
+
+//       if (savedAchievementsStr) {
+//         achievements = JSON.parse(savedAchievementsStr)
+//       }
+
+//       if (savedChallengesStr) {
+//         challenges = JSON.parse(savedChallengesStr)
+//       }
+
+//       // Resetar todas as conquistas e desafios para não completados
+//       const resetAchievements = achievements.map((achievement) => ({
+//         ...achievement,
+//         completed: false,
+//       }))
+
+//       const resetChallenges = challenges.map((challenge) => ({
+//         ...challenge,
+//         completed: false,
+//       }))
+
+//       // Salvar conquistas e desafios resetados
+//       await AsyncStorage.setItem("achievements", JSON.stringify(resetAchievements))
+//       await AsyncStorage.setItem("challenges", JSON.stringify(resetChallenges))
+
+//       console.log("Conquistas e desafios resetados com sucesso")
+
+//       // Resetar dados de consumo de água para o sistema de conquistas
+//       const waterConsumptionData = {
+//         dailyConsumption: 0,
+//         dailyGoal: recommendedWaterIntakeLiters,
+//         consecutiveDays: 0,
+//         lastUpdated: getCurrentDate(),
+//       }
+
+//       await AsyncStorage.setItem("waterConsumption", JSON.stringify(waterConsumptionData))
+//     } catch (error) {
+//       console.error("Erro ao resetar conquistas:", error)
+//     }
 //   }
 
 //   // Função para voltar à tela de perfil para recalcular a meta
@@ -449,8 +777,8 @@
 //   const handleContinueAfterCongrats = () => {
 //     // Fechar o modal de parabéns
 //     setCongratsModalVisible(false)
-//     // Resetar apenas o contador diário, não o histórico
-//     resetWaterConsumed()
+//     // Resetar apenas o contador diário, não o histórico e não as conquistas
+//     resetWaterConsumed(false) // false indica que não é um reset diário
 //   }
 //   // Função para excluir um item do histórico
 //   const deleteHistoryItem = async (id: number) => {
@@ -486,7 +814,7 @@
 //     <View style={styles.container}>
 //       <View style={styles.header}>
 //         <Text style={styles.welcomeText}>Bem-Vindo,</Text>
-//         <Text style={styles.headerTitle}>{userData.name || "Usuário"}!</Text>
+//         <Text style={styles.headerTitle}>{userData.name}</Text>
 //       </View>
 
 //       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -497,7 +825,7 @@
 //               <Text style={styles.waterLabel}>Consumidos Hoje</Text>
 //             </View>
 //             <View style={styles.buttonContainer}>
-//               <TouchableOpacity style={styles.resetButton} onPress={resetWaterConsumed}>
+//               <TouchableOpacity style={styles.resetButton} onPress={() => resetWaterConsumed(false)}>
 //                 <Ionicons name="refresh" size={20} color="white" />
 //                 <Text style={styles.resetButtonText}>Reiniciar</Text>
 //               </TouchableOpacity>
@@ -1281,6 +1609,7 @@ import { useState, useRef, useEffect } from "react"
 import { useRoute, type RouteProp, useNavigation } from "@react-navigation/native"
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack"
 import AsyncStorage from "@react-native-async-storage/async-storage"
+import { auth } from "../../firebaseConfig"
 import React from "react"
 
 type HistoryItem = {
@@ -1464,7 +1793,14 @@ export default function HomeScreen() {
       const jsonValue = await AsyncStorage.getItem("userData")
       if (jsonValue !== null) {
         const data = JSON.parse(jsonValue) as UserData
-        setUserData(data)
+
+        // Preservar o nome do usuário atual se existir
+        const currentName = userData.name !== "Usuário" ? userData.name : data.name
+
+        setUserData((prev) => ({
+          ...data,
+          name: currentName,
+        }))
 
         // Calcular o consumo diário com base nos dados carregados
         const intake = calculateWaterIntake(data.weight, data.height)
@@ -1493,6 +1829,23 @@ export default function HomeScreen() {
   useEffect(() => {
     const initializeData = async () => {
       await loadLastResetTimestamp()
+
+      // Carregar o nome do usuário do Firebase - Modificado para garantir que o nome seja carregado corretamente
+      try {
+        const user = auth.currentUser
+        if (user) {
+          console.log("Usuário autenticado:", user.displayName)
+          // Atualizar o nome do usuário no estado
+          setUserData((prev) => ({
+            ...prev,
+            name: user.displayName || user.email?.split("@")[0] || "Usuário",
+          }))
+        } else {
+          console.log("Nenhum usuário autenticado")
+        }
+      } catch (error) {
+        console.error("Erro ao carregar nome do usuário:", error)
+      }
 
       if (route.params?.waterIntake) {
         console.log("Received water intake from route params:", route.params.waterIntake)
@@ -1536,6 +1889,25 @@ export default function HomeScreen() {
     // Inicializar conquistas e desafios se não existirem
     initializeAchievementsAndChallenges()
   }, [route.params])
+
+  // Adicione um novo useEffect para monitorar mudanças no usuário autenticado
+  useEffect(() => {
+    // Configurar um listener para mudanças no estado de autenticação
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        console.log("Auth state changed - user logged in:", user.displayName)
+        setUserData((prev) => ({
+          ...prev,
+          name: user.displayName || user.email?.split("@")[0] || "Usuário",
+        }))
+      } else {
+        console.log("Auth state changed - user logged out")
+      }
+    })
+
+    // Limpar o listener quando o componente for desmontado
+    return () => unsubscribe()
+  }, [])
 
   // Inicializar conquistas e desafios se não existirem
   const initializeAchievementsAndChallenges = async () => {
@@ -1917,7 +2289,7 @@ export default function HomeScreen() {
     // Somamos todos os valores em ml e convertemos para litros
     const totalInML = items.reduce((sum, item) => sum + item.amount, 0)
     // Convertemos para litros e limitamos a 2 casas decimais
-    return Number.parseFloat((totalInML / 1000).toFixed(2))
+    return Number((totalInML / 1000).toFixed(2))
   }
 
   // Modificar o método handleWaterConsumption para garantir que os dados sejam salvos corretamente
@@ -2064,18 +2436,19 @@ export default function HomeScreen() {
   // Filtrar itens do histórico para mostrar apenas os adicionados após o último reinício
   const filteredHistoryItems = historyItems.filter((item) => item.id > lastResetTimestamp)
 
+  // Certifique-se de que o nome está sendo exibido corretamente no JSX
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.welcomeText}>Bem-Vindo,</Text>
-        <Text style={styles.headerTitle}>{userData.name || "Usuário"}!</Text>
+        <Text style={styles.headerTitle}>{userData.name || "Usuário"}</Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.waterCard}>
           <View style={styles.waterInfoContainer}>
             <View>
-              <Text style={styles.waterAmount}>{totalWaterConsumed} Litros</Text>
+              <Text style={styles.waterAmount}>{totalWaterConsumed.toFixed(2)} Litros</Text>
               <Text style={styles.waterLabel}>Consumidos Hoje</Text>
             </View>
             <View style={styles.buttonContainer}>
@@ -2103,7 +2476,7 @@ export default function HomeScreen() {
             <View style={styles.goalContainer}>
               <Text style={styles.goalText}>
                 {recommendedWaterIntakeLiters > 0
-                  ? `${recommendedWaterIntakeLiters.toFixed(1)} Litros`
+                  ? `${recommendedWaterIntakeLiters.toFixed(2)} Litros`
                   : "Configure seu perfil"}
               </Text>
               <Text style={styles.goalLabel}>Minha Meta</Text>
@@ -2332,7 +2705,7 @@ export default function HomeScreen() {
             <Text style={styles.congratsTitle}>Parabéns!</Text>
             <Text style={styles.congratsMessage}>Você concluiu sua META!</Text>
             <Text style={styles.congratsSubtitle}>
-              {recommendedWaterIntakeLiters.toFixed(1)} Litros de água consumidos
+              {recommendedWaterIntakeLiters.toFixed(2)} Litros de água consumidos
             </Text>
             <TouchableOpacity style={styles.congratsButton} onPress={handleContinueAfterCongrats}>
               <Text style={styles.congratsButtonText}>Continuar</Text>

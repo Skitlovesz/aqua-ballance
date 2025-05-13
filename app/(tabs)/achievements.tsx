@@ -230,7 +230,7 @@
 //   },
 // })
 
-"use client"
+
 
 import { useState, useEffect } from "react"
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Animated } from "react-native"

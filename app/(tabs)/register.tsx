@@ -7,6 +7,7 @@ import React from "react"
 import { auth, db } from "../../firebaseConfig"
 import { createUserWithEmailAndPassword } from "firebase/auth"
 import { doc, setDoc } from "firebase/firestore"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 
 type RootStackParamList = {
   Login: undefined
@@ -43,6 +44,10 @@ export default function Register() {
         email,
       });
 
+      // Salvar o nome do usuário no AsyncStorage
+      await AsyncStorage.setItem("userName", name);
+      console.log("Nome salvo no AsyncStorage:", name); // Log para depuração
+
       alert("Usuário registrado com sucesso!");
       navigation.navigate("Profile");
     } catch (error) {
@@ -78,9 +83,8 @@ export default function Register() {
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.logoContainer}>
-          {/* <Image source={require("../assets/aqua-balance-logo.png")} style={styles.logo} resizeMode="contain" /> */}
           <Text style={styles.title}>AQUA</Text>
-          <Text style={styles.subtitle}>BALANCE</Text>
+          <Text style={styles.subtitle}>BALLANCE</Text>
         </View>
 
         <View style={styles.formContainer}>
