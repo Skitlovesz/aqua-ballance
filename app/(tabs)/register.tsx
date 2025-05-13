@@ -4,6 +4,9 @@ import { Ionicons } from "@expo/vector-icons"
 import { useNavigation } from "@react-navigation/native"
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack"
 import React from "react"
+import { auth, db } from "../../firebaseConfig"
+import { createUserWithEmailAndPassword } from "firebase/auth"
+import { doc, setDoc } from "firebase/firestore"
 
 type RootStackParamList = {
   Login: undefined
@@ -15,6 +18,7 @@ type RegisterScreenNavigationProp = NativeStackNavigationProp<RootStackParamList
 
 export default function Register() {
   const [name, setName] = useState("")
+  const [sobrenome, setSobrenome] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -22,12 +26,32 @@ export default function Register() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const navigation = useNavigation<RegisterScreenNavigationProp>()
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (password !== confirmPassword) {
       alert("As senhas não coincidem!")
       return
     }
-    navigation.navigate("Profile")
+
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+      const user = userCredential.user
+
+      // Salvar dados adicionais no Firestore
+      await setDoc(doc(db, "users", user.uid), {
+        name,
+        sobrenome,
+        email,
+      })
+
+      alert("Usuário registrado com sucesso!")
+      navigation.navigate("Profile")
+    } catch (error) {
+      if (error instanceof Error) {
+        alert("Erro ao registrar: " + error.message)
+      } else {
+        alert("Erro ao registrar: " + String(error))
+      }
+    }
   }
 
   const handleLogin = () => {
@@ -57,6 +81,17 @@ export default function Register() {
               placeholder="Nome"
               value={name}
               onChangeText={setName}
+              autoCapitalize="words"
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Ionicons name="person-outline" size={20} color="#2196F3" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Sobrenome"
+              value={sobrenome}
+              onChangeText={setSobrenome}
               autoCapitalize="words"
             />
           </View>

@@ -1,9 +1,11 @@
 import { useState } from "react"
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform,ScrollView,} from "react-native"
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { useNavigation } from "@react-navigation/native"
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack"
 import React from "react"
+import { auth } from "../../firebaseConfig"
+import { signInWithEmailAndPassword } from "firebase/auth"
 
 type RootStackParamList = {
   Login: undefined
@@ -20,9 +22,20 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const navigation = useNavigation<LoginScreenNavigationProp>()
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password)
+      const user = userCredential.user
 
-    navigation.navigate("Profile")
+      alert("Login realizado com sucesso!")
+      navigation.navigate("Profile")
+    } catch (error) {
+      if (error instanceof Error) {
+        alert("Erro ao fazer login: " + error.message)
+      } else {
+        alert("Erro ao fazer login: Erro desconhecido")
+      }
+    }
   }
 
   const handleRegister = () => {
@@ -69,11 +82,6 @@ export default function Login() {
               <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#999" />
             </TouchableOpacity>
           </View>
-
-          <TouchableOpacity style={styles.forgotPassword}>
-            <Text style={styles.forgotPasswordText}>Esqueceu a senha?</Text>
-          </TouchableOpacity>
-
           <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
             <Text style={styles.loginButtonText}>Entrar</Text>
           </TouchableOpacity>
