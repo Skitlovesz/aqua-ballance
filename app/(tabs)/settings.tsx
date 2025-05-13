@@ -542,13 +542,11 @@ export default function SettingsScreen() {
   const navigation = useNavigation<SettingsScreenNavigationProp>();
   
   useEffect(() => {
-    // Configurar ouvintes de notificação em silêncio (sem alertas)
     const notificationReceivedSubscription = Notifications.addNotificationReceivedListener(notification => {
-      console.log('Notificação recebida:', notification);
+      
     });
     const notificationResponseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
-      console.log('Usuário interagiu com a notificação:', response);
-      // Você pode adicionar lógica aqui para lidar com a interação do usuário
+     
     });
 
     // Verificar permissões silenciosamente, sem mostrar alertas
