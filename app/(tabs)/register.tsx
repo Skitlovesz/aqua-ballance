@@ -28,28 +28,40 @@ export default function Register() {
 
   const handleRegister = async () => {
     if (password !== confirmPassword) {
-      alert("As senhas não coincidem!")
-      return
+      alert("As senhas não coincidem!");
+      return;
     }
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-      const user = userCredential.user
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
 
       // Salvar dados adicionais no Firestore
       await setDoc(doc(db, "users", user.uid), {
         name,
         sobrenome,
         email,
-      })
+      });
 
-      alert("Usuário registrado com sucesso!")
-      navigation.navigate("Profile")
+      alert("Usuário registrado com sucesso!");
+      navigation.navigate("Profile");
     } catch (error) {
-      if (error instanceof Error) {
-        alert("Erro ao registrar: " + error.message)
-      } else {
-        alert("Erro ao registrar: " + String(error))
+      const firebaseError = error as { code: string; message: string };
+      switch (firebaseError.code) {
+        case "auth/email-already-in-use":
+          alert("O email já está em uso. Por favor, use outro email.");
+          break;
+        case "auth/invalid-email":
+          alert("O email fornecido é inválido. Verifique e tente novamente.");
+          break;
+        case "auth/weak-password":
+          alert("A senha é muito fraca. Use pelo menos 6 caracteres.");
+          break;
+        case "auth/configuration-not-found":
+          alert("Erro de configuração do Firebase. Verifique a inicialização.");
+          break;
+        default:
+          alert("Erro ao registrar: " + firebaseError.message);
       }
     }
   }
