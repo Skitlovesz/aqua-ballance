@@ -808,8 +808,8 @@ export default function HomeScreen() {
   const handleContinueAfterCongrats = () => {
     // Fechar o modal de parabéns
     setCongratsModalVisible(false)
-    // Resetar apenas o contador diário, não o histórico e não as conquistas
-    resetWaterConsumed(false) // false indica que não é um reset diário
+    // Não resetar o contador, apenas marcar como celebrado
+    setGoalCelebrated(true); 
   }
   // Função para excluir um item do histórico
   const deleteHistoryItem = async (id: number) => {
