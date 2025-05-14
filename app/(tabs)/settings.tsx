@@ -4,7 +4,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import * as Notifications from 'expo-notifications';
+import { signOut } from "firebase/auth"
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { auth } from "../../firebaseConfig"
 
 // Configuração correta do handler de notificações
 Notifications.setNotificationHandler({
@@ -58,6 +60,7 @@ const registerForPushNotificationsAsync = async () => {
 type RootStackParamList = {
   Profile: undefined;
   MainTabs: undefined;
+  Login: undefined;
 };
 
 type SettingsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, "MainTabs">;
@@ -635,6 +638,20 @@ export default function SettingsScreen() {
     
     setConfirmModalVisible(false);
   };
+  const handleLogout = async () => {
+    try {
+      await signOut(auth)
+      // Navigate to login screen after successful logout
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "Login" }],
+      })
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error)
+      Alert.alert("Erro", "Não foi possível fazer logout. Tente novamente mais tarde.")
+    }
+  }
+
 
   return (
     <View style={styles.container}>
@@ -696,7 +713,6 @@ export default function SettingsScreen() {
               disabled={!notificationsEnabled}
             />
           </TouchableOpacity>
-
           <View style={styles.settingItem}>
             <View style={styles.settingIcon}>
               <Ionicons name="notifications-outline" size={20} color="#2196F3" />
@@ -710,6 +726,10 @@ export default function SettingsScreen() {
             />
           </View>
         </View>
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+               <Ionicons name="log-out-outline" size={24} color="white" style={styles.logoutIcon} />
+               <Text style={styles.logoutText}>Sair</Text>
+          </TouchableOpacity>
       </ScrollView>
 
       <RemindersModal 
@@ -1047,5 +1067,23 @@ const styles = StyleSheet.create({
   testButton: {
     padding: 8,
     marginRight: 8,
+  },
+  logoutButton: {
+    backgroundColor: "#FF5252",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 16,
+    marginBottom: 24,
+  },
+  logoutIcon: {
+    marginRight: 8,
+  },
+  logoutText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });
