@@ -46,6 +46,18 @@ export default function Register() {
 
       // Salvar o nome do usuário no AsyncStorage
       await AsyncStorage.setItem("userName", name);
+      // Salvar perfil inicial para o index.tsx encontrar
+      await AsyncStorage.setItem(
+        `userData_${user.uid}`,
+        JSON.stringify({
+          name,
+          weight: 0,
+          height: 0,
+          waterIntake: 0,
+          email,
+        }),
+      );
+
       console.log("Nome salvo no AsyncStorage:", name); // Log para depuração
 
       alert("Usuário registrado com sucesso!");

@@ -6,6 +6,8 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack"
 import React from "react"
 import { auth } from "../../firebaseConfig"
 import { signInWithEmailAndPassword } from "firebase/auth"
+import { getFirestore, doc, getDoc } from "firebase/firestore"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 
 type RootStackParamList = {
   Login: undefined
@@ -26,6 +28,32 @@ export default function Login() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password)
       const user = userCredential.user
+
+      // Buscar nome do usuário no Firestore e salvar no AsyncStorage
+      try {
+        const db = getFirestore()
+        const userDoc = await getDoc(doc(db, "users", user.uid))
+        if (userDoc.exists()) {
+          const userData = userDoc.data()
+          if (userData && userData.name) {
+            await AsyncStorage.setItem("userName", userData.name)
+            // Salvar perfil inicial para o index.tsx encontrar
+            await AsyncStorage.setItem(
+              `userData_${user.uid}`,
+              JSON.stringify({
+                name: userData.name,
+                weight: 0,
+                height: 0,
+                waterIntake: 0,
+                email: user.email,
+              }),
+            )
+          }
+        }
+      } catch (e) {
+        // Se não conseguir buscar, não impede o login
+        console.warn("Não foi possível sincronizar o nome do usuário:", e)
+      }
 
       alert("Login realizado com sucesso!")
       navigation.navigate("Profile")
