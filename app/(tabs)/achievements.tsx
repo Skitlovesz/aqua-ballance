@@ -1,242 +1,9 @@
-// import { useState } from "react"
-// import { View, Text, StyleSheet, TouchableOpacity, FlatList } from "react-native"
-// import { Ionicons } from "@expo/vector-icons"
-// import React from "react"
-
-// type Achievement = {
-//   id: string
-//   title: string
-//   completed: boolean
-// }
-
-// type Challenge = {
-//   id: string
-//   title: string
-//   completed: boolean
-// }
-
-// const achievements: Achievement[] = [
-//   {
-//     id: "1",
-//     title: "Beba 2 litros de água por 7 dias consecutivos",
-//     completed: true,
-//   },
-//   {
-//     id: "2",
-//     title: "Complete sua meta diária",
-//     completed: true,
-//   },
-//   {
-//     id: "3",
-//     title: "Beba 2 litros hoje",
-//     completed: true,
-//   }
-// ]
-
-// const challenges: Challenge[] = [
-//   {
-//     id: "1",
-//     title: "Beba 2 litros de água por 7 dias consecutivos",
-//     completed: false,
-//   },
-//   {
-//     id: "2",
-//     title: "Complete sua meta diária",
-//     completed: true,
-//   },
-//   {
-//     id: "3",
-//     title: "Beba 2 litros hoje",
-//     completed: false,
-//   },
-// ]
-
-// export default function AchievementsScreen() {
-//   const [activeTab, setActiveTab] = useState("achievements")
-
-//   const renderAchievement = ({ item }: { item: Achievement }) => (
-//     <View style={styles.achievementItem}>
-//       <View style={styles.achievementIcon}>
-//         <Ionicons name="trophy" size={24} color="#2196F3" />
-//       </View>
-//       <View style={styles.achievementContent}>
-//         <Text style={styles.achievementTitle}>{item.title}</Text>
-//       </View>
-//       <TouchableOpacity style={styles.moreButton}>
-//         <Ionicons name="ellipsis-horizontal" size={20} color="#999" />
-//       </TouchableOpacity>
-//     </View>
-//   )
-
-//   const renderChallenge = ({ item }: { item: Challenge }) => (
-//     <View style={styles.achievementItem}>
-//       <View style={[styles.achievementIcon, !item.completed && styles.incompleteIcon]}>
-//         <Ionicons
-//           name={item.completed ? "checkmark-circle" : "time-outline"}
-//           size={24}
-//           color={item.completed ? "#2196F3" : "#999"}
-//         />
-//       </View>
-//       <View style={styles.achievementContent}>
-//         <Text style={styles.achievementTitle}>{item.title}</Text>
-//       </View>
-//       <TouchableOpacity style={styles.moreButton}>
-//         <Ionicons name="ellipsis-horizontal" size={20} color="#999" />
-//       </TouchableOpacity>
-//     </View>
-//   )
-
-//   return (
-//     <View style={styles.container}>
-//       <View style={styles.header}>
-//         <Text style={styles.headerTitle}>Minhas Conquistas</Text>
-//       </View>
-
-//       <View style={styles.tabsContainer}>
-//         <TouchableOpacity
-//           style={[styles.tab, activeTab === "achievements" && styles.activeTab]}
-//           onPress={() => setActiveTab("achievements")}
-//         >
-//           <Text style={[styles.tabText, activeTab === "achievements" && styles.activeTabText]}>Minhas Conquistas</Text>
-//         </TouchableOpacity>
-//         <TouchableOpacity
-//           style={[styles.tab, activeTab === "challenges" && styles.activeTab]}
-//           onPress={() => setActiveTab("challenges")}
-//         >
-//           <Text style={[styles.tabText, activeTab === "challenges" && styles.activeTabText]}>Desafios</Text>
-//         </TouchableOpacity>
-//       </View>
-
-//       {activeTab === "achievements" ? (
-//         <FlatList
-//           data={achievements}
-//           renderItem={renderAchievement}
-//           keyExtractor={(item) => item.id}
-//           contentContainerStyle={styles.achievementsList}
-//         />
-//       ) : (
-//         <FlatList
-//           data={challenges}
-//           renderItem={renderChallenge}
-//           keyExtractor={(item) => item.id}
-//           contentContainerStyle={styles.achievementsList}
-//         />
-//       )}
-//     </View>
-//   )
-// }
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     backgroundColor: "#f5f5f5",
-//   },
-//   header: {
-//     backgroundColor: "#2196F3",
-//     paddingTop: 50,
-//     paddingBottom: 20,
-//     paddingHorizontal: 20,
-//   },
-//   headerTitle: {
-//     color: "white",
-//     fontSize: 20,
-//     fontWeight: "bold",
-//   },
-//   tabsContainer: {
-//     flexDirection: "row",
-//     backgroundColor: "white",
-//     borderBottomWidth: 1,
-//     borderBottomColor: "#f0f0f0",
-//   },
-//   tab: {
-//     flex: 1,
-//     paddingVertical: 15,
-//     alignItems: "center",
-//   },
-//   activeTab: {
-//     borderBottomWidth: 2,
-//     borderBottomColor: "#2196F3",
-//   },
-//   tabText: {
-//     color: "#999",
-//     fontWeight: "500",
-//   },
-//   activeTabText: {
-//     color: "#2196F3",
-//   },
-//   achievementsList: {
-//     padding: 15,
-//   },
-//   achievementItem: {
-//     flexDirection: "row",
-//     backgroundColor: "white",
-//     borderRadius: 10,
-//     padding: 15,
-//     marginBottom: 15,
-//     alignItems: "center",
-//     shadowColor: "#000",
-//     shadowOffset: { width: 0, height: 2 },
-//     shadowOpacity: 0.1,
-//     shadowRadius: 4,
-//     elevation: 2,
-//   },
-//   achievementIcon: {
-//     width: 40,
-//     height: 40,
-//     borderRadius: 20,
-//     backgroundColor: "#f0f0f0",
-//     alignItems: "center",
-//     justifyContent: "center",
-//     marginRight: 15,
-//   },
-//   incompleteIcon: {
-//     backgroundColor: "#f9f9f9",
-//   },
-//   achievementContent: {
-//     flex: 1,
-//   },
-//   achievementTitle: {
-//     fontSize: 14,
-//     color: "#333",
-//   },
-//   moreButton: {
-//     padding: 5,
-//   },
-//   tabBar: {
-//     flexDirection: "row",
-//     height: 60,
-//     backgroundColor: "white",
-//     borderTopWidth: 1,
-//     borderTopColor: "#f0f0f0",
-//   },
-//   tabItem: {
-//     flex: 1,
-//     alignItems: "center",
-//     justifyContent: "center",
-//   },
-//   centerTab: {
-//     justifyContent: "flex-start",
-//   },
-//   centerTabButton: {
-//     backgroundColor: "#2196F3",
-//     width: 50,
-//     height: 50,
-//     borderRadius: 25,
-//     alignItems: "center",
-//     justifyContent: "center",
-//     marginTop: -25,
-//     borderWidth: 5,
-//     borderColor: "white",
-//   },
-// })
-
-
-
 import { useState, useEffect } from "react"
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Animated } from "react-native"
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Animated, Alert } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
-import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useIsFocused } from "@react-navigation/native"
+import { auth, db } from "../../firebaseConfig"
+import {doc,getDoc,setDoc,collection,getDocs,updateDoc,serverTimestamp, type Timestamp,} from "firebase/firestore"
 import React from "react"
 
 // Corrigindo a tipagem dos ícones para usar o tipo correto do Ionicons
@@ -247,6 +14,7 @@ type Achievement = {
   id: string
   title: string
   completed: boolean
+  completedAt?: Timestamp
   icon: IconName
   description: string
 }
@@ -255,6 +23,7 @@ type Challenge = {
   id: string
   title: string
   completed: boolean
+  completedAt?: Timestamp
   achievementId: string // ID da conquista relacionada
   icon: IconName
   description: string
@@ -322,13 +91,15 @@ export default function AchievementsScreen() {
   const [popupAnimation] = useState(new Animated.Value(0))
   // Novo estado para rastrear se as conquistas foram carregadas
   const [achievementsLoaded, setAchievementsLoaded] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   const isFocused = useIsFocused()
 
   // Carregar dados salvos quando a tela for focada
   useEffect(() => {
     if (isFocused) {
-      loadAchievementsAndChallenges()
+      loadAchievementsFromFirebase()
+      checkForNewAchievements()
     }
   }, [isFocused])
 
@@ -353,62 +124,319 @@ export default function AchievementsScreen() {
     }
   }, [showAchievementPopup])
 
-  // Carregar conquistas e desafios do AsyncStorage
-  const loadAchievementsAndChallenges = async () => {
+  // Carregar conquistas e desafios do Firebase
+  const loadAchievementsFromFirebase = async () => {
     try {
-      console.log("Carregando conquistas e desafios...")
-      const savedAchievements = await AsyncStorage.getItem("achievements")
-      const savedChallenges = await AsyncStorage.getItem("challenges")
+      setIsLoading(true)
+      console.log("Carregando conquistas e desafios do Firebase...")
 
-      if (savedAchievements) {
-        const parsedAchievements = JSON.parse(savedAchievements)
-        console.log("Conquistas carregadas:", parsedAchievements)
-        setAchievements(parsedAchievements)
-      } else {
-        // Se não houver conquistas salvas, usar os valores iniciais
-        console.log("Nenhuma conquista encontrada, usando valores iniciais")
-        setAchievements(initialAchievements)
-        await AsyncStorage.setItem("achievements", JSON.stringify(initialAchievements))
+      const user = auth.currentUser
+      if (!user) {
+        console.log("Usuário não autenticado")
+        setIsLoading(false)
+        return
       }
 
-      if (savedChallenges) {
-        const parsedChallenges = JSON.parse(savedChallenges)
-        console.log("Desafios carregados:", parsedChallenges)
-        setChallenges(parsedChallenges)
+      // Referência para a coleção de conquistas do usuário
+      const achievementsRef = collection(db, "users", user.uid, "achievements")
+      const achievementsSnapshot = await getDocs(achievementsRef)
+
+      // Referência para a coleção de desafios do usuário
+      const challengesRef = collection(db, "users", user.uid, "challenges")
+      const challengesSnapshot = await getDocs(challengesRef)
+
+      // Se não houver documentos, inicializar com os valores padrão
+      if (achievementsSnapshot.empty) {
+        console.log("Nenhuma conquista encontrada, inicializando...")
+        await initializeAchievementsAndChallenges(user.uid)
       } else {
-        // Se não houver desafios salvos, usar os valores iniciais
-        console.log("Nenhum desafio encontrado, usando valores iniciais")
-        setChallenges(initialChallenges)
-        await AsyncStorage.setItem("challenges", JSON.stringify(initialChallenges))
+        // Mapear os documentos para o formato de Achievement
+        const loadedAchievements: Achievement[] = []
+        achievementsSnapshot.forEach((doc) => {
+          const data = doc.data() as Achievement
+          loadedAchievements.push({
+            id: doc.id,
+            title: data.title,
+            completed: data.completed,
+            completedAt: data.completedAt,
+            icon: data.icon as IconName,
+            description: data.description,
+          })
+        })
+        setAchievements(loadedAchievements)
+        console.log("Conquistas carregadas:", loadedAchievements)
+
+        // Mapear os documentos para o formato de Challenge
+        const loadedChallenges: Challenge[] = []
+        challengesSnapshot.forEach((doc) => {
+          const data = doc.data() as Challenge
+          loadedChallenges.push({
+            id: doc.id,
+            title: data.title,
+            completed: data.completed,
+            completedAt: data.completedAt,
+            achievementId: data.achievementId,
+            icon: data.icon as IconName,
+            description: data.description,
+          })
+        })
+        setChallenges(loadedChallenges)
+        console.log("Desafios carregados:", loadedChallenges)
       }
 
       setAchievementsLoaded(true)
-
-      // Verificar se há conquistas completadas para mostrar o popup
-      checkForCompletedAchievements(savedAchievements)
+      setIsLoading(false)
     } catch (error) {
       console.error("Erro ao carregar conquistas e desafios:", error)
-      // Em caso de erro, usar os valores iniciais
-      setAchievements(initialAchievements)
-      setChallenges(initialChallenges)
-      setAchievementsLoaded(true)
+      setIsLoading(false)
+      Alert.alert("Erro", "Não foi possível carregar suas conquistas e desafios.")
     }
   }
 
-  // Verificar se há conquistas recém-completadas para mostrar o popup
-  const checkForCompletedAchievements = (savedAchievementsStr: string | null) => {
-    if (!savedAchievementsStr) return
-
+  // Inicializar conquistas e desafios no Firebase
+  const initializeAchievementsAndChallenges = async (userId: string) => {
     try {
-      const savedAchievements = JSON.parse(savedAchievementsStr)
-      const completedAchievement = savedAchievements.find((a: Achievement) => a.completed)
+      console.log("Inicializando conquistas e desafios no Firebase...")
 
-      if (completedAchievement) {
-        setCurrentAchievement(completedAchievement)
-        setShowAchievementPopup(true)
+      // Adicionar cada conquista ao Firebase
+      for (const achievement of initialAchievements) {
+        await setDoc(doc(db, "users", userId, "achievements", achievement.id), {
+          ...achievement,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        })
+      }
+
+      // Adicionar cada desafio ao Firebase
+      for (const challenge of initialChallenges) {
+        await setDoc(doc(db, "users", userId, "challenges", challenge.id), {
+          ...challenge,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        })
+      }
+
+      // Atualizar o estado local
+      setAchievements(initialAchievements)
+      setChallenges(initialChallenges)
+
+      console.log("Conquistas e desafios inicializados com sucesso!")
+    } catch (error) {
+      console.error("Erro ao inicializar conquistas e desafios:", error)
+      Alert.alert("Erro", "Não foi possível inicializar suas conquistas e desafios.")
+    }
+  }
+
+  // Verificar se há novas conquistas a serem desbloqueadas
+  const checkForNewAchievements = async () => {
+    try {
+      const user = auth.currentUser
+      if (!user) return
+
+      console.log("Verificando novas conquistas...")
+
+      // 1. Verificar se o usuário bebeu 2 litros hoje (Hidratação Completa)
+      await check2LitersAchievement(user.uid)
+
+      // 2. Verificar se o usuário atingiu a meta diária (Meta Diária Alcançada)
+      await checkDailyGoalAchievement(user.uid)
+
+      // 3. Verificar se o usuário bebeu água por 7 dias consecutivos (Hidratação Consistente)
+      await check7DaysConsecutiveAchievement(user.uid)
+
+      // Recarregar conquistas após as verificações
+      loadAchievementsFromFirebase()
+    } catch (error) {
+      console.error("Erro ao verificar novas conquistas:", error)
+    }
+  }
+
+  // Verificar conquista de 2 litros
+  const check2LitersAchievement = async (userId: string) => {
+    try {
+      // Obter o consumo atual do usuário
+      const userDocRef = doc(db, "users", userId)
+      const userDoc = await getDoc(userDocRef)
+
+      if (userDoc.exists()) {
+        const userData = userDoc.data()
+        const currentIntake = userData.currentIntake || 0
+
+        // Verificar se o usuário bebeu pelo menos 2 litros (2000ml)
+        if (currentIntake >= 2000) {
+          // Verificar se a conquista já foi completada
+          const achievementRef = doc(db, "users", userId, "achievements", "achievement_3")
+          const achievementDoc = await getDoc(achievementRef)
+
+          if (achievementDoc.exists() && !achievementDoc.data().completed) {
+            // Atualizar a conquista
+            await updateDoc(achievementRef, {
+              completed: true,
+              completedAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            })
+
+            // Atualizar o desafio relacionado
+            const challengeRef = doc(db, "users", userId, "challenges", "challenge_3")
+            await updateDoc(challengeRef, {
+              completed: true,
+              completedAt: serverTimestamp(),
+              icon: "checkmark-circle", // Atualizar o ícone
+              updatedAt: serverTimestamp(),
+            })
+
+            // Mostrar popup de conquista
+            const achievement = {
+              id: "achievement_3",
+              title: "Hidratação Completa",
+              completed: true,
+              icon: "water" as IconName,
+              description: "Beba 2 litros de água em um único dia.",
+            }
+            setCurrentAchievement(achievement)
+            setShowAchievementPopup(true)
+
+            console.log("Conquista de 2 litros desbloqueada!")
+          }
+        }
       }
     } catch (error) {
-      console.error("Erro ao verificar conquistas completadas:", error)
+      console.error("Erro ao verificar conquista de 2 litros:", error)
+    }
+  }
+
+  // Verificar conquista de meta diária
+  const checkDailyGoalAchievement = async (userId: string) => {
+    try {
+      // Obter o consumo atual e a meta do usuário
+      const userDocRef = doc(db, "users", userId)
+      const userDoc = await getDoc(userDocRef)
+
+      if (userDoc.exists()) {
+        const userData = userDoc.data()
+        const currentIntake = userData.currentIntake || 0
+        const dailyGoal = userData.waterIntake || 2000
+
+        // Verificar se o usuário atingiu sua meta diária
+        if (currentIntake >= dailyGoal) {
+          // Verificar se a conquista já foi completada
+          const achievementRef = doc(db, "users", userId, "achievements", "achievement_2")
+          const achievementDoc = await getDoc(achievementRef)
+
+          if (achievementDoc.exists() && !achievementDoc.data().completed) {
+            // Atualizar a conquista
+            await updateDoc(achievementRef, {
+              completed: true,
+              completedAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            })
+
+            // Atualizar o desafio relacionado
+            const challengeRef = doc(db, "users", userId, "challenges", "challenge_2")
+            await updateDoc(challengeRef, {
+              completed: true,
+              completedAt: serverTimestamp(),
+              icon: "checkmark-circle", // Atualizar o ícone
+              updatedAt: serverTimestamp(),
+            })
+
+            // Mostrar popup de conquista
+            const achievement = {
+              id: "achievement_2",
+              title: "Meta Diária Alcançada",
+              completed: true,
+              icon: "ribbon" as IconName,
+              description: "Complete sua meta diária de consumo de água.",
+            }
+            setCurrentAchievement(achievement)
+            setShowAchievementPopup(true)
+
+            console.log("Conquista de meta diária desbloqueada!")
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao verificar conquista de meta diária:", error)
+    }
+  }
+
+  // Verificar conquista de 7 dias consecutivos
+  const check7DaysConsecutiveAchievement = async (userId: string) => {
+    try {
+      // Obter o histórico de consumo dos últimos 7 dias
+      const today = new Date()
+      const historyCollectionRef = collection(db, "users", userId, "history")
+
+      // Array para armazenar as datas dos últimos 7 dias
+      const last7Days = []
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(today)
+        date.setDate(date.getDate() - i)
+        const dateString = date.toISOString().split("T")[0]
+        last7Days.push(dateString)
+      }
+
+      // Verificar se há registros para cada um dos últimos 7 dias
+      let consecutiveDays = 0
+
+      for (const dateString of last7Days) {
+        const historyDocRef = doc(historyCollectionRef, dateString)
+        const historyDoc = await getDoc(historyDocRef)
+
+        if (historyDoc.exists()) {
+          const historyData = historyDoc.data()
+          // Verificar se houve consumo neste dia (pelo menos 1ml)
+          if (historyData.totalIntake > 0) {
+            consecutiveDays++
+          } else {
+            // Se um dia não tiver consumo, interromper a contagem
+            break
+          }
+        } else {
+          // Se não houver registro para o dia, interromper a contagem
+          break
+        }
+      }
+
+      // Verificar se o usuário bebeu água por 7 dias consecutivos
+      if (consecutiveDays >= 7) {
+        // Verificar se a conquista já foi completada
+        const achievementRef = doc(db, "users", userId, "achievements", "achievement_1")
+        const achievementDoc = await getDoc(achievementRef)
+
+        if (achievementDoc.exists() && !achievementDoc.data().completed) {
+          // Atualizar a conquista
+          await updateDoc(achievementRef, {
+            completed: true,
+            completedAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          })
+
+          // Atualizar o desafio relacionado
+          const challengeRef = doc(db, "users", userId, "challenges", "challenge_1")
+          await updateDoc(challengeRef, {
+            completed: true,
+            completedAt: serverTimestamp(),
+            icon: "checkmark-circle", // Atualizar o ícone
+            updatedAt: serverTimestamp(),
+          })
+
+          // Mostrar popup de conquista
+          const achievement = {
+            id: "achievement_1",
+            title: "Hidratação Consistente",
+            completed: true,
+            icon: "trophy" as IconName,
+            description: "Beba água por 7 dias seguidos.",
+          }
+          setCurrentAchievement(achievement)
+          setShowAchievementPopup(true)
+
+          console.log("Conquista de 7 dias consecutivos desbloqueada!")
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao verificar conquista de 7 dias consecutivos:", error)
     }
   }
 
@@ -425,6 +453,11 @@ export default function AchievementsScreen() {
       <View style={styles.achievementContent}>
         <Text style={styles.achievementTitle}>{item.title}</Text>
         <Text style={styles.achievementDescription}>{item.description}</Text>
+        {item.completed && item.completedAt && (
+          <Text style={styles.completedDate}>
+            Concluído em: {new Date(item.completedAt.toDate()).toLocaleDateString("pt-BR")}
+          </Text>
+        )}
       </View>
       <TouchableOpacity style={styles.moreButton}>
         <Ionicons name="ellipsis-horizontal" size={20} color="#999" />
@@ -437,7 +470,7 @@ export default function AchievementsScreen() {
     <View style={styles.achievementItem}>
       <View style={[styles.achievementIcon, item.completed ? styles.completedIcon : styles.incompleteIcon]}>
         <Ionicons
-          name={item.completed ? "checkmark-circle" : "time-outline"}
+          name={item.completed ? "checkmark-circle" : item.icon}
           size={24}
           color={item.completed ? "#2196F3" : "#999"}
         />
@@ -445,12 +478,25 @@ export default function AchievementsScreen() {
       <View style={styles.achievementContent}>
         <Text style={styles.achievementTitle}>{item.title}</Text>
         <Text style={styles.achievementDescription}>{item.description}</Text>
+        {item.completed && item.completedAt && (
+          <Text style={styles.completedDate}>
+            Concluído em: {new Date(item.completedAt.toDate()).toLocaleDateString("pt-BR")}
+          </Text>
+        )}
       </View>
       <TouchableOpacity style={styles.moreButton}>
         <Ionicons name="ellipsis-horizontal" size={20} color="#999" />
       </TouchableOpacity>
     </View>
   )
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <Text>Carregando conquistas...</Text>
+      </View>
+    )
+  }
 
   return (
     <View style={styles.container}>
@@ -524,6 +570,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
+  },
+  loadingContainer: {
+    justifyContent: "center",
+    alignItems: "center",
   },
   header: {
     backgroundColor: "#2196F3",
@@ -600,6 +650,12 @@ const styles = StyleSheet.create({
   achievementDescription: {
     fontSize: 12,
     color: "#666",
+    marginBottom: 4,
+  },
+  completedDate: {
+    fontSize: 10,
+    color: "#2196F3",
+    fontStyle: "italic",
   },
   moreButton: {
     padding: 5,

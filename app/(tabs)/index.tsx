@@ -1,16 +1,5 @@
 import { useState, useEffect } from "react"
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-  Modal,
-  TextInput,
-  FlatList,
-  AppState,
-} from "react-native"
+import {  View,Text,StyleSheet,TouchableOpacity,ScrollView,Alert,Modal,TextInput,FlatList,AppState,} from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useNavigation, useRoute } from "@react-navigation/native"
