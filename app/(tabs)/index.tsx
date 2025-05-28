@@ -884,13 +884,19 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   goalText: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#666",
+    fontSize: 18, // Increased from 14
+    fontWeight: '800', // Made bolder
+    color: '#2196F3', // Changed to primary blue color
+    textShadowColor: 'rgba(33, 150, 243, 0.15)', // Added subtle text shadow
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+    letterSpacing: 0.5, // Added letter spacing
   },
   goalLabel: {
-    fontSize: 10,
-    color: "#999",
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '600', // Made slightly bolder
+    letterSpacing: 0.5,
   },
   infoButton: {
     marginLeft: 10,
