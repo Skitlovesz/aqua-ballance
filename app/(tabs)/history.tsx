@@ -355,7 +355,8 @@ export default function HistoryScreen() {
           ) : (
             <BarChart
               data={getChartData()}
-              width={screenWidth}
+              // width={screenWidth}
+              width={screenWidth - 60}
               height={220}
               yAxisLabel=""
               yAxisSuffix="L"
@@ -374,7 +375,7 @@ export default function HistoryScreen() {
                   fontSize: 10,
                 },
               }}
-              style={styles.chart}
+              style={{ ...styles.chart, alignSelf: 'center' }}
               showBarTops={false}
               fromZero
               withInnerLines={false}
@@ -479,6 +480,7 @@ const styles = StyleSheet.create({
     elevation: 2,
     minHeight: 250,
     justifyContent: "center",
+    alignItems: "center",
   },
   loadingContainer: {
     alignItems: "center",

@@ -1209,10 +1209,10 @@ export default function SettingsScreen() {
             style={styles.settingItem}
             onPress={() => notificationsEnabled && setNotificationsExpanded(!notificationsExpanded)}
           >
-            <View style={styles.settingIcon}>
+            {/* <View style={styles.settingIcon}>
               <Ionicons name="trophy" size={20} color={notificationsEnabled ? "#2196F3" : "#999"} />
-            </View>
-            <Text style={[styles.settingText, !notificationsEnabled && styles.disabledText]}>Conquistas</Text>
+            </View> */}
+            {/* <Text style={[styles.settingText, !notificationsEnabled && styles.disabledText]}>Conquistas</Text>
             <Switch
               value={achievementsEnabled}
               onValueChange={(value) => {
@@ -1230,7 +1230,7 @@ export default function SettingsScreen() {
               trackColor={{ false: "#e0e0e0", true: "#90CAF9" }}
               thumbColor={achievementsEnabled ? "#2196F3" : "#f4f3f4"}
               disabled={!notificationsEnabled}
-            />
+            /> */}
           </TouchableOpacity>
           <View style={styles.settingItem}>
             <View style={styles.settingIcon}>
