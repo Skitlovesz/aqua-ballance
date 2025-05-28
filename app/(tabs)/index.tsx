@@ -8,7 +8,6 @@ import { doc, setDoc, getDoc, collection, updateDoc, increment, serverTimestamp 
 import React from "react"
 
 declare global {
-  // eslint-disable-next-line no-var
   var EventEmitter: {
     emit: (event: string, data?: any) => void
   } | undefined
@@ -501,7 +500,6 @@ export default function HomeScreen() {
   useEffect(() => {
     // Função para emitir evento de atualização
     const emitUpdateEvent = () => {
-      // Usar o mecanismo de eventos do React Native
       if (global.EventEmitter) {
         global.EventEmitter.emit("waterDataUpdated", {
           currentIntake: waterIntake,
@@ -884,18 +882,18 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   goalText: {
-    fontSize: 18, // Increased from 14
-    fontWeight: '800', // Made bolder
-    color: '#2196F3', // Changed to primary blue color
-    textShadowColor: 'rgba(33, 150, 243, 0.15)', // Added subtle text shadow
+    fontSize: 18, 
+    fontWeight: '800', 
+    color: '#2196F3', 
+    textShadowColor: 'rgba(33, 150, 243, 0.15)', 
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
-    letterSpacing: 0.5, // Added letter spacing
+    letterSpacing: 0.5, 
   },
   goalLabel: {
     fontSize: 12,
     color: '#666',
-    fontWeight: '600', // Made slightly bolder
+    fontWeight: '600', 
     letterSpacing: 0.5,
   },
   infoButton: {
