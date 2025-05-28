@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "bolt-expo-nativewind",
+    "name": "aqua-balance",
     "slug": "bolt-expo-nativewind",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -11,6 +11,7 @@
     "plugins": [
       "expo-router",
       "expo-font",
+      "expo-web-browser",
       [
         "expo-notifications",
         {
