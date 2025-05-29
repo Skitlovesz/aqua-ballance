@@ -658,7 +658,19 @@ const RemindersModal = ({ visible, onClose }: RemindersModalProps) => {
 
     try {
       if (reminderToDelete.type === "interval") {
+        // Cancela todas as notificações agendadas para este lembrete de intervalo
         await cancelIntervalNotifications(reminderToDelete.id)
+        // Cancela qualquer notificação agendada (inclusive as que não seguem o padrão de id)
+        const scheduled = await Notifications.getAllScheduledNotificationsAsync()
+        for (const n of scheduled) {
+          const rid = n.content.data?.reminderId
+          if (
+            (typeof rid === "string" && rid.startsWith(reminderToDelete.id)) ||
+            n.identifier === reminderToDelete.id
+          ) {
+            await Notifications.cancelScheduledNotificationAsync(n.identifier)
+          }
+        }
       } else {
         await Notifications.cancelScheduledNotificationAsync(reminderToDelete.id)
       }
