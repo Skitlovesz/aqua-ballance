@@ -397,6 +397,29 @@ const scheduleIntervalNotifications = async (reminder: ReminderItem) => {
   }
 }
 
+// Função auxiliar para cancelar todas as notificações de um lembrete de intervalo
+const cancelIntervalNotifications = async (reminderId: string) => {
+  try {
+    const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync()
+    const notificationsToCancel = scheduledNotifications.filter(notification => {
+      const notificationReminderId = notification.content.data?.reminderId
+      return notificationReminderId && notificationReminderId.toString().startsWith(`${reminderId}-`)
+    })
+
+    let canceledCount = 0
+    for (const notification of notificationsToCancel) {
+      await Notifications.cancelScheduledNotificationAsync(notification.identifier)
+      canceledCount++
+    }
+
+    console.log(`${canceledCount} notificações de intervalo canceladas para ${reminderId}`)
+    return canceledCount
+  } catch (error) {
+    console.error("Erro ao cancelar notificações de intervalo:", error)
+    return 0
+  }
+}
+
 // Modal de Lembretes
 const RemindersModal = ({ visible, onClose }: RemindersModalProps) => {
   const [reminders, setReminders] = useState<ReminderItem[]>([])
@@ -548,7 +571,7 @@ const RemindersModal = ({ visible, onClose }: RemindersModalProps) => {
 
       setTimeout(() => {
         setJustAdded(false)
-      }, 1000)
+      }, 100) // Reduzido de 1000 para 100
     } else {
       setAddAlarmModalVisible(false)
       setIntervalModalVisible(true)
@@ -622,28 +645,39 @@ const RemindersModal = ({ visible, onClose }: RemindersModalProps) => {
       await saveReminder(user.uid, newReminder)
     }
 
-    setIntervalModalVisible(false)
+    setIntervalModalVisible(false) // Fecha o modal imediatamente
 
     setTimeout(() => {
       setJustAdded(false)
-    }, 1000)
+    }, 100)
   }
 
+  // Versão atualizada do deleteReminderItem usando a função auxiliar
   const deleteReminderItem = async (index: number) => {
     const reminderToDelete = reminders[index]
 
-    // Cancela a notificação antes de remover o lembrete
-    await Notifications.cancelScheduledNotificationAsync(reminderToDelete.id)
+    try {
+      if (reminderToDelete.type === "interval") {
+        await cancelIntervalNotifications(reminderToDelete.id)
+      } else {
+        await Notifications.cancelScheduledNotificationAsync(reminderToDelete.id)
+      }
 
-    // Remove o lembrete do estado local
-    const updatedReminders = [...reminders]
-    updatedReminders.splice(index, 1)
-    setReminders(updatedReminders)
+      // Remove o lembrete do estado local
+      const updatedReminders = [...reminders]
+      updatedReminders.splice(index, 1)
+      setReminders(updatedReminders)
 
-    // Remove o lembrete do Firebase
-    const user = auth.currentUser
-    if (user) {
-      await deleteReminder(user.uid, reminderToDelete.id)
+      // Remove o lembrete do Firebase
+      const user = auth.currentUser
+      if (user) {
+        await deleteReminder(user.uid, reminderToDelete.id)
+      }
+
+      console.log(`Lembrete ${reminderToDelete.id} excluído com sucesso`)
+    } catch (error) {
+      console.error("Erro ao excluir lembrete:", error)
+      Alert.alert("Erro", "Não foi possível excluir o lembrete. Tente novamente.")
     }
   }
 
@@ -733,9 +767,6 @@ const RemindersModal = ({ visible, onClose }: RemindersModalProps) => {
                     </Text>
                   </View>
                   <View style={styles.reminderActions}>
-                    <TouchableOpacity style={styles.testButton} onPress={() => testReminder(reminder)}>
-                      <Ionicons name="play-outline" size={18} color="#2196F3" />
-                    </TouchableOpacity>
                     <Switch
                       value={reminder.enabled}
                       onValueChange={() => toggleReminder(index)}
@@ -746,6 +777,7 @@ const RemindersModal = ({ visible, onClose }: RemindersModalProps) => {
                 </View>
               ))
             )}
+          
           </View>
 
           <TouchableOpacity
@@ -928,7 +960,10 @@ const RemindersModal = ({ visible, onClose }: RemindersModalProps) => {
               </View>
             </View>
 
-            <TouchableOpacity style={styles.simpleIntervalButton} onPress={addIntervalReminder}>
+            <TouchableOpacity style={styles.simpleIntervalButton} onPress={async () => {
+              await addIntervalReminder();
+              setIntervalModalVisible(false); // Fecha o modal instantaneamente após adicionar
+            }}>
               <Text style={styles.simpleIntervalButtonText}>Adicionar</Text>
             </TouchableOpacity>
           </View>
